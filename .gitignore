@@ -1,0 +1,406 @@
+
+# Environment files with API keys
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*
+*.env
+
+# API key files
+*api_key*
+*_secret*
+*.key
+*.pem
+*.cert
+secrets/
+config/secrets/
+
+# Firebase sensitive files
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebaserc
+.firebase/
+**/firebase-adminsdk*.json
+**/service-account*.json
+
+# Claude/Anthropic API keys
+claude_api_key*
+anthropic_api_key*
+claude.key
+anthropic.key
+
+# Alpha Vantage API keys
+alpha_vantage_api_key*
+alphavantage.key
+
+# User-provided API keys (runtime storage)
+user-api-keys/
+runtime-keys/
+
+# ===================================================================
+# ANGULAR FRONTEND
+# ===================================================================
+
+# Dependencies
+frontend/node_modules/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Build outputs
+frontend/dist/
+frontend/.angular/
+frontend/.sass-cache/
+frontend/connect.lock
+frontend/typings/
+
+# Testing
+frontend/coverage/
+frontend/.nyc_output/
+
+# Angular build artifacts
+frontend/tmp/
+frontend/out-tsc/
+frontend/bazel-out/
+
+# ===================================================================
+# PYTHON AGENTS - OUR SPECIFIC STRUCTURE
+# ===================================================================
+
+# Coordinator Agent
+agents/python/coordinator/__pycache__/
+agents/python/coordinator/*.py[cod]
+agents/python/coordinator/.pytest_cache/
+
+# Risk Assessment Agent  
+agents/python/risk_assessment/__pycache__/
+agents/python/risk_assessment/*.py[cod]
+agents/python/risk_assessment/.pytest_cache/
+
+# News Analysis Agent
+agents/python/news_analysis/__pycache__/
+agents/python/news_analysis/*.py[cod]
+agents/python/news_analysis/.pytest_cache/
+
+# Portfolio Optimizer Agent
+agents/python/portfolio_optimizer/__pycache__/
+agents/python/portfolio_optimizer/*.py[cod]
+agents/python/portfolio_optimizer/.pytest_cache/
+
+# Shared Python components
+agents/python/shared/__pycache__/
+agents/python/shared/*.py[cod]
+
+# Python testing and cache
+agents/python/tests/__pycache__/
+agents/python/.pytest_cache/
+agents/python/htmlcov/
+agents/python/.coverage
+agents/python/.tox/
+
+# Python virtual environments
+agents/python/.venv/
+agents/python/venv/
+agents/python/env/
+agents/python/.env/
+
+# Python distribution / packaging
+agents/python/build/
+agents/python/develop-eggs/
+agents/python/dist/
+agents/python/downloads/
+agents/python/eggs/
+agents/python/.eggs/
+agents/python/lib/
+agents/python/lib64/
+agents/python/parts/
+agents/python/sdist/
+agents/python/var/
+agents/python/wheels/
+agents/python/*.egg-info/
+agents/python/.installed.cfg
+agents/python/*.egg
+agents/python/MANIFEST
+
+# ===================================================================
+# JAVA AGENT - MARKET RESEARCH
+# ===================================================================
+
+# Maven build artifacts
+agents/java/target/
+agents/java/pom.xml.tag
+agents/java/pom.xml.releaseBackup
+agents/java/pom.xml.versionsBackup
+agents/java/pom.xml.next
+agents/java/release.properties
+agents/java/dependency-reduced-pom.xml
+agents/java/buildNumber.properties
+agents/java/.mvn/timing.properties
+agents/java/.mvn/wrapper/maven-wrapper.jar
+
+# Gradle (if used)
+agents/java/.gradle/
+agents/java/gradle-app.setting
+agents/java/!gradle-wrapper.jar
+agents/java/.gradletasknamecache
+
+# Compiled Java files
+agents/java/**/*.class
+agents/java/**/*.jar
+agents/java/**/*.war
+agents/java/**/*.ear
+
+# IDE files for Java
+agents/java/.idea/
+agents/java/*.iws
+agents/java/*.iml
+agents/java/*.ipr
+agents/java/.settings/
+agents/java/.project
+agents/java/.classpath
+
+# ===================================================================
+# FIREBASE FUNCTIONS
+# ===================================================================
+
+# Dependencies
+functions/node_modules/
+functions/npm-debug.log*
+functions/yarn-debug.log*
+functions/yarn-error.log*
+
+# Firebase Functions build
+functions/lib/
+functions/.env
+functions/.env.local
+
+# Firebase emulator data
+firebase-export-*/
+
+# ===================================================================
+# SHARED COMPONENTS
+# ===================================================================
+
+# Node modules in shared
+shared/node_modules/
+
+# Compiled TypeScript
+shared/**/*.js
+shared/**/*.js.map
+shared/**/*.d.ts
+
+# ===================================================================
+# NODE.JS / NPM GENERAL
+# ===================================================================
+
+# Root level dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory
+coverage/
+*.lcov
+.nyc_output/
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# ===================================================================
+# AI ARTIFACTS & CACHE
+# ===================================================================
+
+# LangChain cache
+.langchain/
+langchain_cache/
+
+# General AI model artifacts (if any downloaded)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# ===================================================================
+# DEVELOPMENT TOOLS & LOGS
+# ===================================================================
+
+# General logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Agent communication logs
+agent-logs/
+communication-logs/
+workflow-logs/
+
+# Session data
+sessions/
+*.session
+agent-state/
+*.checkpoint
+
+# ===================================================================
+# IDE & EDITOR FILES
+# ===================================================================
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Eclipse
+.apt_generated/
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+# ===================================================================
+# OPERATING SYSTEM FILES
+# ===================================================================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS  
+.DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+Icon
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===================================================================
+# TESTING & TEMPORARY FILES
+# ===================================================================
+
+# Testing artifacts
+test-results/
+test-outputs/
+junit.xml
+coverage.xml
+*.test.log
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*.swn
+*~
+.cache/
+tmp/
+temp/
+
+# ===================================================================
+# BUILD & DEPLOYMENT ARTIFACTS  
+# ===================================================================
+
+# Build outputs
+build/
+dist/
+out/
+target/
+
+# Deployment artifacts
+*.zip
+*.tar.gz
+*.tgz
+deployment-package/
+
+# ===================================================================
+# PROJECT SPECIFIC - PORTFOLIO BUILDER
+# ===================================================================
+
+# Local development configurations
+config/local.json
+config/development.json
+
+# Mock/test data
+mock-data/
+test-portfolios/
+sample-data/
+
+# Documentation builds (if using generators)
+docs/_build/
+docs/dist/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# User uploaded files (if any)
+uploads/
+user-files/
