@@ -1,0 +1,49 @@
+/* portfolio-builder-ai/frontend/src/app/app.component.scss */
+
+.app-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  
+  .app-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+  
+  .app-subtitle {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    
+    @media (max-width: 768px) {
+      display: none;
+    }
+  }
+  
+  .spacer {
+    flex: 1 1 auto;
+  }
+}
+
+.app-content {
+  min-height: calc(100vh - 120px);
+  padding: 20px;
+  background-color: #fafafa;
+  
+  @media (max-width: 768px) {
+    padding: 10px;
+  }
+}
+
+.app-footer {
+  background-color: #333;
+  color: white;
+  text-align: center;
+  padding: 15px;
+  margin-top: auto;
+  
+  p {
+    margin: 0;
+    font-size: 0.8rem;
+  }
+}

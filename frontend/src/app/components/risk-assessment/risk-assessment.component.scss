@@ -1,0 +1,101 @@
+/* portfolio-builder-ai/frontend/src/app/components/risk-assessment/risk-assessment.component.scss */
+
+.risk-assessment-container {
+  padding: 20px;
+}
+
+.assessment-card {
+  padding: 20px;
+  
+  mat-card-header {
+    margin-bottom: 24px;
+    
+    mat-card-title {
+      font-size: 1.8rem;
+      color: #1976d2;
+    }
+    
+    mat-card-subtitle {
+      font-size: 1rem;
+      margin-top: 8px;
+      color: #666;
+    }
+  }
+}
+
+.assessment-form {
+  .mat-mdc-form-field {
+    display: block;
+    
+    &.full-width {
+      width: 100%;
+    }
+  }
+  
+  .button-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+    gap: 16px;
+    
+    button {
+      min-width: 120px;
+      height: 44px;
+      
+      &[mat-raised-button] {
+        flex: 1;
+        max-width: 280px;
+      }
+    }
+    
+    .button-spinner {
+      display: inline-block;
+      margin-right: 8px;
+    }
+  }
+}
+
+// Form field customizations
+.mat-mdc-form-field-hint-wrapper,
+.mat-mdc-form-field-error-wrapper {
+  font-size: 0.75rem;
+}
+
+.mat-mdc-form-field-error {
+  color: #f44336;
+}
+
+.mat-mdc-form-field-hint {
+  color: #666;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .risk-assessment-container {
+    padding: 10px;
+  }
+  
+  .assessment-card {
+    padding: 16px;
+    
+    mat-card-header {
+      mat-card-title {
+        font-size: 1.5rem;
+      }
+      
+      mat-card-subtitle {
+        font-size: 0.9rem;
+      }
+    }
+  }
+  
+  .button-group {
+    flex-direction: column-reverse;
+    
+    button {
+      width: 100%;
+      max-width: none;
+    }
+  }
+}
