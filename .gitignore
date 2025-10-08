@@ -8,6 +8,9 @@
 .env.*
 *.env
 
+# Environment files with secrets
+frontend/src/environments/environment.prod.ts
+
 # API key files
 *api_key*
 *_secret*

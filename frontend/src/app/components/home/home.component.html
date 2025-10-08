@@ -1,0 +1,44 @@
+<!-- portfolio-builder-ai/frontend/src/app/components/home/home.component.html -->
+
+<div class="home-container max-width-800">
+  <mat-card class="hero-card">
+    <mat-card-header>
+      <mat-card-title class="hero-title">Build Your Perfect Portfolio</mat-card-title>
+      <mat-card-subtitle class="hero-subtitle">AI-powered investment recommendations tailored to your risk profile</mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content class="hero-content">
+      <div class="features-grid">
+        <div class="feature">
+          <mat-icon class="feature-icon">psychology</mat-icon>
+          <h3>AI-Powered Analysis</h3>
+          <p>Advanced algorithms analyze market trends and your preferences</p>
+        </div>
+        
+        <div class="feature">
+          <mat-icon class="feature-icon">security</mat-icon>
+          <h3>Risk Assessment</h3>
+          <p>Personalized risk profiling based on your investment goals</p>
+        </div>
+        
+        <div class="feature">
+          <mat-icon class="feature-icon">trending_up</mat-icon>
+          <h3>Optimized Returns</h3>
+          <p>Portfolio recommendations designed for optimal growth</p>
+        </div>
+      </div>
+      
+      <div class="cta-section">
+        <p class="cta-text">Get started with your personalized portfolio analysis</p>
+        <button 
+          mat-raised-button 
+          color="primary" 
+          class="cta-button"
+          (click)="startPortfolioBuilding()">
+          Start Building Your Portfolio
+        </button>
+        <p class="disclaimer">No registration required • Free analysis • 2 attempts included</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

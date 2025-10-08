@@ -1,0 +1,93 @@
+<!-- portfolio-builder-ai/frontend/src/app/components/risk-assessment/risk-assessment.component.html -->
+
+<div class="risk-assessment-container max-width-600">
+  <mat-card class="assessment-card">
+    <mat-card-header>
+      <mat-card-title>Risk Assessment</mat-card-title>
+      <mat-card-subtitle>Help us understand your investment preferences</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="assessmentForm" (ngSubmit)="onSubmit()" class="assessment-form">
+        
+        <!-- Risk Tolerance -->
+        <mat-form-field class="full-width mb-2">
+          <mat-label>Risk Tolerance</mat-label>
+          <mat-select formControlName="riskTolerance">
+            <mat-option *ngFor="let option of riskToleranceOptions" [value]="option">
+              {{ option }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="hasError('riskTolerance', 'required')">
+            {{ getErrorMessage('riskTolerance') }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Investment Horizon -->
+        <mat-form-field class="full-width mb-2">
+          <mat-label>Investment Horizon (Years)</mat-label>
+          <input matInput 
+                 type="number" 
+                 formControlName="investmentHorizonYears"
+                 placeholder="e.g., 10"
+                 min="1"
+                 max="50">
+          <mat-error *ngIf="hasError('investmentHorizonYears', 'required') || 
+                            hasError('investmentHorizonYears', 'min') || 
+                            hasError('investmentHorizonYears', 'max')">
+            {{ getErrorMessage('investmentHorizonYears') }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Country Selection -->
+        <mat-form-field class="full-width mb-2">
+          <mat-label>Investment Country</mat-label>
+          <mat-select formControlName="country">
+            <mat-option *ngFor="let config of countryConfigs" [value]="config.country">
+              {{ config.country }} ({{ config.currency }})
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="hasError('country', 'required')">
+            {{ getErrorMessage('country') }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Investment Amount -->
+        <mat-form-field class="full-width mb-3">
+          <mat-label>Investment Amount ({{ selectedCurrencySymbol }})</mat-label>
+          <input matInput 
+                 type="number" 
+                 formControlName="investmentAmount"
+                 [placeholder]="'e.g., ' + selectedCurrencySymbol + getMinInvestmentAmount()"
+                 [min]="getMinInvestmentAmount()">
+          <mat-hint>Minimum: {{ selectedCurrencySymbol }}{{ getMinInvestmentAmount() }}</mat-hint>
+          <mat-error *ngIf="hasError('investmentAmount', 'required') || 
+                            hasError('investmentAmount', 'min')">
+            {{ getErrorMessage('investmentAmount') }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Action Buttons -->
+        <div class="button-group">
+          <button 
+            mat-button 
+            type="button" 
+            (click)="goBack()"
+            [disabled]="isSubmitting">
+            Back
+          </button>
+          
+          <button 
+            mat-raised-button 
+            color="primary" 
+            type="submit"
+            [disabled]="assessmentForm.invalid || isSubmitting">
+            <mat-spinner *ngIf="isSubmitting" diameter="20" class="button-spinner"></mat-spinner>
+            <span *ngIf="!isSubmitting">Get Portfolio Recommendations</span>
+            <span *ngIf="isSubmitting">Processing...</span>
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
