@@ -1,23 +1,24 @@
-// portfolio-builder-ai/frontend/src/app/services/rate-limit.service.ts
-
 import { Injectable } from '@angular/core';
-import { Firestore, doc, getDoc, setDoc } from '@angular/fire/firestore';
-import { Observable, from, of } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 import { RateLimitInfo } from '../shared/models';
+import { RateLimitApiService } from './api/rate-limit-api.service';
+import { LoggerService } from './logger.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RateLimitService {
   private readonly STORAGE_KEY = 'portfolio_rate_limit';
-  private readonly COLLECTION_NAME = 'rate_limits';
 
-  constructor(private firestore: Firestore) {}
+  constructor(
+    private rateLimitApiService: RateLimitApiService,
+    private logger: LoggerService
+  ) {}
 
   /**
-   * Generates a fingerprint based on IP approximation and UserAgent
-   * Note: We can't get real IP from browser, so we use available browser fingerprinting
+   * Generate browser fingerprint for rate limiting
    */
   private generateFingerprint(): string {
     const userAgent = navigator.userAgent;
@@ -26,7 +27,6 @@ export class RateLimitService {
     const screenResolution = `${screen.width}x${screen.height}`;
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     
-    // Create a semi-unique fingerprint
     const fingerprint = `${userAgent}_${language}_${platform}_${screenResolution}_${timezone}`;
     
     // Simple hash function
@@ -34,70 +34,146 @@ export class RateLimitService {
     for (let i = 0; i < fingerprint.length; i++) {
       const char = fingerprint.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
+      hash = hash & hash;
     }
     
     return Math.abs(hash).toString(36);
   }
 
   /**
-   * Checks if user has exceeded rate limit
+   * Check if user has exceeded rate limit
+   * Calls BFF which checks Firebase Firestore
    */
   checkRateLimit(): Observable<{ allowed: boolean; attemptsRemaining: number; rateLimitInfo: RateLimitInfo }> {
     const fingerprint = this.generateFingerprint();
-    
-    return from(this.getRateLimitFromFirestore(fingerprint)).pipe(
-      map(firestoreData => {
-        const localData = this.getRateLimitFromLocalStorage();
-        
-        // Use the more restrictive of local or Firestore data
-        const rateLimitInfo = this.mergeRateLimitData(localData, firestoreData, fingerprint);
-        
-        const allowed = rateLimitInfo.attempts < rateLimitInfo.maxAttempts;
-        const attemptsRemaining = Math.max(0, rateLimitInfo.maxAttempts - rateLimitInfo.attempts);
-        
-        return { allowed, attemptsRemaining, rateLimitInfo };
+    this.logger.debug('RateLimitService: Checking rate limit for fingerprint', fingerprint);
+
+    // In mock mode, use localStorage (no BFF needed)
+    if (environment.features.useMockData) {
+      this.logger.debug('RateLimitService: Mock mode - using localStorage');
+      return of(this.getFallbackRateLimit(fingerprint));
+    }
+
+    // Call BFF to check rate limit
+    return this.rateLimitApiService.checkRateLimit(fingerprint).pipe(
+      map(response => {
+        if (response.success && response.data) {
+          const data = response.data;
+          
+          const rateLimitInfo: RateLimitInfo = {
+            attempts: data.attemptsUsed,
+            maxAttempts: data.attemptsUsed + data.attemptsRemaining,
+            lastAttempt: new Date(data.resetAt),
+            fingerprint
+          };
+
+          // Also store in localStorage for backup
+          this.saveToLocalStorage(rateLimitInfo);
+
+          this.logger.info('RateLimitService: Rate limit check complete', {
+            allowed: data.allowed,
+            attemptsRemaining: data.attemptsRemaining
+          });
+
+          return {
+            allowed: data.allowed,
+            attemptsRemaining: data.attemptsRemaining,
+            rateLimitInfo
+          };
+        } else {
+          this.logger.warn('RateLimitService: BFF returned unsuccessful response');
+          // Fallback to localStorage
+          return this.getFallbackRateLimit(fingerprint);
+        }
       }),
       catchError(error => {
-        console.warn('Error checking rate limit from Firestore, using local storage only:', error);
-        const localData = this.getRateLimitFromLocalStorage();
-        const rateLimitInfo = localData || this.createDefaultRateLimitInfo(fingerprint);
-        
-        const allowed = rateLimitInfo.attempts < rateLimitInfo.maxAttempts;
-        const attemptsRemaining = Math.max(0, rateLimitInfo.maxAttempts - rateLimitInfo.attempts);
-        
-        return of({ allowed, attemptsRemaining, rateLimitInfo });
+        this.logger.error('RateLimitService: Error checking rate limit, using fallback', error);
+        return of(this.getFallbackRateLimit(fingerprint));
       })
     );
   }
 
   /**
-   * Increments the attempt counter
+   * Increment attempt counter
    */
   incrementAttempt(): Observable<void> {
     const fingerprint = this.generateFingerprint();
-    
-    return this.checkRateLimit().pipe(
-      map(({ rateLimitInfo }) => {
-        const updatedInfo: RateLimitInfo = {
-          ...rateLimitInfo,
-          attempts: rateLimitInfo.attempts + 1,
-          lastAttempt: new Date()
-        };
-        
-        // Update both local storage and Firestore
-        this.saveRateLimitToLocalStorage(updatedInfo);
-        this.saveRateLimitToFirestore(updatedInfo).catch(error => {
-          console.warn('Failed to save rate limit to Firestore:', error);
-        });
+    this.logger.debug('RateLimitService: Incrementing attempt for fingerprint', fingerprint);
+
+    // In mock mode, increment localStorage (no BFF needed)
+    if (environment.features.useMockData) {
+      this.logger.debug('RateLimitService: Mock mode - incrementing localStorage');
+      
+      const stored = this.getFromLocalStorage();
+      if (stored) {
+        stored.attempts += 1;
+        stored.lastAttempt = new Date();
+        this.saveToLocalStorage(stored);
+        this.logger.debug('RateLimitService: Incremented to', stored.attempts);
+      }
+      
+      return of(void 0);
+    }
+
+    // Call BFF to increment
+    return this.rateLimitApiService.incrementRateLimit(fingerprint).pipe(
+      map(() => {
+        this.logger.info('RateLimitService: Attempt incremented successfully');
+        return void 0;
+      }),
+      catchError(error => {
+        this.logger.error('RateLimitService: Error incrementing attempt', error);
+        // Still allow the operation to continue
+        return of(void 0);
       })
     );
   }
 
   /**
-   * Gets rate limit data from localStorage
+   * Get fallback rate limit from localStorage
    */
-  private getRateLimitFromLocalStorage(): RateLimitInfo | null {
+  private getFallbackRateLimit(fingerprint: string): { allowed: boolean; attemptsRemaining: number; rateLimitInfo: RateLimitInfo } {
+    const stored = this.getFromLocalStorage();
+    
+    if (stored) {
+      const allowed = stored.attempts < stored.maxAttempts;
+      const attemptsRemaining = Math.max(0, stored.maxAttempts - stored.attempts);
+      
+      return { allowed, attemptsRemaining, rateLimitInfo: stored };
+    }
+
+    // Default fallback - save to localStorage
+    const defaultInfo: RateLimitInfo = {
+      attempts: 0,
+      maxAttempts: 2,
+      lastAttempt: new Date(),
+      fingerprint
+    };
+    
+    this.saveToLocalStorage(defaultInfo);
+
+    return {
+      allowed: true,
+      attemptsRemaining: 2,
+      rateLimitInfo: defaultInfo
+    };
+  }
+
+  /**
+   * Save to localStorage
+   */
+  private saveToLocalStorage(info: RateLimitInfo): void {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(info));
+    } catch (error) {
+      this.logger.warn('RateLimitService: Failed to save to localStorage', error);
+    }
+  }
+
+  /**
+   * Get from localStorage
+   */
+  private getFromLocalStorage(): RateLimitInfo | null {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
@@ -108,120 +184,17 @@ export class RateLimitService {
         };
       }
     } catch (error) {
-      console.warn('Error reading rate limit from localStorage:', error);
+      this.logger.warn('RateLimitService: Failed to read from localStorage', error);
     }
     return null;
   }
 
   /**
-   * Saves rate limit data to localStorage
-   */
-  private saveRateLimitToLocalStorage(rateLimitInfo: RateLimitInfo): void {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(rateLimitInfo));
-    } catch (error) {
-      console.warn('Error saving rate limit to localStorage:', error);
-    }
-  }
-
-  /**
-   * Gets rate limit data from Firestore
-   */
-  private async getRateLimitFromFirestore(fingerprint: string): Promise<RateLimitInfo | null> {
-    try {
-      const docRef = doc(this.firestore, this.COLLECTION_NAME, fingerprint);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        return {
-          attempts: data['attempts'] || 0,
-          maxAttempts: data['maxAttempts'] || 2,
-          lastAttempt: data['lastAttempt']?.toDate() || new Date(),
-          fingerprint: fingerprint
-        };
-      }
-    } catch (error) {
-      console.warn('Error reading from Firestore:', error);
-    }
-    return null;
-  }
-
-  /**
-   * Saves rate limit data to Firestore
-   */
-  private async saveRateLimitToFirestore(rateLimitInfo: RateLimitInfo): Promise<void> {
-    try {
-      const docRef = doc(this.firestore, this.COLLECTION_NAME, rateLimitInfo.fingerprint);
-      await setDoc(docRef, {
-        attempts: rateLimitInfo.attempts,
-        maxAttempts: rateLimitInfo.maxAttempts,
-        lastAttempt: rateLimitInfo.lastAttempt,
-        fingerprint: rateLimitInfo.fingerprint,
-        updatedAt: new Date()
-      }, { merge: true });
-    } catch (error) {
-      console.warn('Error saving to Firestore:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Creates default rate limit info
-   */
-  private createDefaultRateLimitInfo(fingerprint: string): RateLimitInfo {
-    return {
-      attempts: 0,
-      maxAttempts: 2, // Default, will be overridden by config service
-      lastAttempt: new Date(),
-      fingerprint: fingerprint
-    };
-  }
-
-  /**
-   * Merges local and Firestore rate limit data, taking the more restrictive values
-   */
-  private mergeRateLimitData(
-    localData: RateLimitInfo | null, 
-    firestoreData: RateLimitInfo | null,
-    fingerprint: string
-  ): RateLimitInfo {
-    if (!localData && !firestoreData) {
-      return this.createDefaultRateLimitInfo(fingerprint);
-    }
-    
-    if (!localData) return firestoreData!;
-    if (!firestoreData) return localData;
-    
-    // Take the higher attempt count (more restrictive)
-    return {
-      attempts: Math.max(localData.attempts, firestoreData.attempts),
-      maxAttempts: localData.maxAttempts,
-      lastAttempt: localData.lastAttempt > firestoreData.lastAttempt ? localData.lastAttempt : firestoreData.lastAttempt,
-      fingerprint: fingerprint
-    };
-  }
-
-  /**
-   * Resets rate limit (for testing or admin purposes)
+   * Reset rate limit (for testing)
    */
   resetRateLimit(): Observable<void> {
-    const fingerprint = this.generateFingerprint();
-    const resetInfo: RateLimitInfo = {
-      attempts: 0,
-      maxAttempts: 2,
-      lastAttempt: new Date(),
-      fingerprint: fingerprint
-    };
-
-    this.saveRateLimitToLocalStorage(resetInfo);
-    
-    return from(this.saveRateLimitToFirestore(resetInfo)).pipe(
-      map(() => void 0),
-      catchError(error => {
-        console.warn('Failed to reset rate limit in Firestore:', error);
-        return of(void 0);
-      })
-    );
+    this.logger.debug('RateLimitService: Resetting rate limit');
+    localStorage.removeItem(this.STORAGE_KEY);
+    return of(void 0);
   }
 }

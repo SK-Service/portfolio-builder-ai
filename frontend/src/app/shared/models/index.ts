@@ -1,4 +1,8 @@
-// portfolio-builder-ai/shared/types/index.ts
+// Export all model interfaces
+
+// ============================================
+// Existing Domain Models (keep these)
+// ============================================
 
 export interface RiskAssessment {
   riskTolerance: RiskTolerance;
@@ -8,25 +12,13 @@ export interface RiskAssessment {
   currency: Currency;
 }
 
-export type RiskTolerance = 'Low' | 'Medium' | 'High';
-
-export type Country = 'USA' | 'EU' | 'Canada' | 'India';
-
-export type Currency = 'USD' | 'EUR' | 'CAD' | 'INR';
-
-export interface CountryConfig {
-  country: Country;
-  currency: Currency;
-  symbol: string;
-}
-
 export interface StockRecommendation {
   symbol: string;
   companyName: string;
-  allocation: number; // percentage
+  allocation: number;
   expectedReturn: number;
   sector: string;
-  country: Country;
+  country: string;
 }
 
 export interface PortfolioRecommendation {
@@ -45,7 +37,7 @@ export interface RateLimitInfo {
   attempts: number;
   maxAttempts: number;
   lastAttempt: Date;
-  fingerprint: string; // IP + UserAgent hash
+  fingerprint: string;
 }
 
 export interface AppConfig {
@@ -54,11 +46,33 @@ export interface AppConfig {
   supportedCountries: CountryConfig[];
 }
 
+export interface CountryConfig {
+  country: Country;
+  currency: Currency;
+  symbol: string;
+  minInvestmentAmount?: number;  // Optional for now
+}
+
+// ============================================
+// Type Definitions
+// ============================================
+
+export type Country = 'USA' | 'EU' | 'Canada' | 'India';
+export type Currency = 'USD' | 'EUR' | 'CAD' | 'INR';
+export type RiskTolerance = 'Low' | 'Medium' | 'High';
+
 export const COUNTRY_CONFIGS: CountryConfig[] = [
-  { country: 'USA', currency: 'USD', symbol: '$' },
-  { country: 'EU', currency: 'EUR', symbol: '€' },
-  { country: 'Canada', currency: 'CAD', symbol: 'C$' },
-  { country: 'India', currency: 'INR', symbol: '₹' }
+  { country: 'USA', currency: 'USD', symbol: '$', minInvestmentAmount: 100 },
+  { country: 'EU', currency: 'EUR', symbol: '€', minInvestmentAmount: 100 },
+  { country: 'Canada', currency: 'CAD', symbol: 'C$', minInvestmentAmount: 100 },
+  { country: 'India', currency: 'INR', symbol: '₹', minInvestmentAmount: 5000 }
 ];
 
 export const RISK_TOLERANCE_OPTIONS: RiskTolerance[] = ['Low', 'Medium', 'High'];
+
+// ============================================
+// Export API Contracts (NEW)
+// ============================================
+
+export * from './api-contracts';
+

@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve --host 0.0.0.0 --port 4200",
-    "build": "ng build",
+    "start": "ng serve",
+    "build": "ng build --configuration production",
+    "build:dev": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:ci": "ng test --watch=false --browsers=ChromeHeadless --code-coverage",
-    "lint": "ng lint",
-    "serve:prod": "ng serve --configuration production"
+    "lint": "ng lint"
   },
   "private": true,
   "dependencies": {
@@ -50,10 +50,17 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "msw": "^2.11.5",
     "typescript": "~5.5.0"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "msw": {
+    "workerDirectory": [
+      "src\\assets",
+      "src"
+    ]
   }
 }

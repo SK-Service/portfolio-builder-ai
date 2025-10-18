@@ -1,6 +1,6 @@
 // portfolio-builder-ai/frontend/src/app/app.module.ts
 
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientModule, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
@@ -33,8 +33,15 @@ import { RiskAssessmentComponent } from './components/risk-assessment/risk-asses
 
 // Services
 import { ConfigService } from './services/config.service';
+import { LoadingService } from './services/loading.service';
+import { LoggerService } from './services/logger.service';
 import { PortfolioService } from './services/portfolio.service';
 import { RateLimitService } from './services/rate-limit.service';
+
+// Interceptors
+import { authInterceptor } from './interceptors/auth.interceptor';
+import { errorInterceptor } from './interceptors/error.interceptor';
+import { loadingInterceptor } from './interceptors/loading.interceptor';
 
 const firebaseConfig = environment.firebase;
 
@@ -69,9 +76,18 @@ const firebaseConfig = environment.firebase;
   providers: [
     provideFirebaseApp(() => initializeApp(firebaseConfig)),
     provideFirestore(() => getFirestore()),
+    provideHttpClient(
+      withInterceptors([
+        authInterceptor,
+        loadingInterceptor,
+        errorInterceptor
+      ])
+    ),
     RateLimitService,
     ConfigService,
-    PortfolioService
+    PortfolioService,
+    LoadingService,
+    LoggerService
   ],
   bootstrap: [AppComponent]
 })
