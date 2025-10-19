@@ -1,49 +1,54 @@
-/* portfolio-builder-ai/frontend/src/app/app.component.scss */
-
 .app-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 12px 24px;
+  height: auto;
+  min-height: 56px;
   
   .app-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-  }
-  
-  .app-subtitle {
-    font-size: 0.9rem;
-    opacity: 0.9;
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: white;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
     
-    @media (max-width: 768px) {
-      display: none;
+    &:hover {
+      opacity: 0.9;
     }
   }
   
   .spacer {
     flex: 1 1 auto;
   }
+  
+  .app-subtitle {
+    font-size: 0.9rem;
+    font-weight: 400;
+    opacity: 0.95;
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+    
+    .spacer {
+      display: none;
+    }
+  }
 }
 
 .app-content {
   min-height: calc(100vh - 120px);
-  padding: 20px;
-  background-color: #fafafa;
-  
-  @media (max-width: 768px) {
-    padding: 10px;
-  }
 }
 
 .app-footer {
-  background-color: #333;
-  color: white;
+  background-color: #424242;  // ← Dark grey (was #f5f5f5)
+  padding: 20px;
   text-align: center;
-  padding: 15px;
-  margin-top: auto;
+  color: #fff;  // ← White text (was #666)
   
   p {
     margin: 0;
-    font-size: 0.8rem;
+    font-size: 0.875rem;
   }
 }
