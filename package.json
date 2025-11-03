@@ -29,6 +29,7 @@
     "setup:python": "cd agents/python && python -m venv .venv && .venv/Scripts/activate && pip install -r requirements.txt"
   },
   "devDependencies": {
+    "@types/node": "^24.9.1",
     "concurrently": "^8.2.2",
     "rimraf": "^5.0.5"
   },
@@ -36,7 +37,23 @@
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
   },
-  "keywords": ["portfolio", "ai", "agents", "finance", "angular", "firebase"],
+  "keywords": [
+    "portfolio",
+    "ai",
+    "agents",
+    "finance",
+    "angular",
+    "firebase"
+  ],
   "author": "Portfolio Builder AI",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@nestjs/axios": "^4.0.1",
+    "@nestjs/config": "^4.0.2",
+    "axios": "^1.12.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "firebase-admin": "^13.5.0",
+    "firebase-functions": "^6.6.0"
+  }
 }
