@@ -24,8 +24,10 @@ config/secrets/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+firebase-service-account.json
 .firebaserc
 .firebase/
+**/firebase-service-account.json
 **/firebase-adminsdk*.json
 **/service-account*.json
 
@@ -73,60 +75,23 @@ frontend/bazel-out/
 # PYTHON AGENTS - OUR SPECIFIC STRUCTURE
 # ===================================================================
 
-# Coordinator Agent
-agents/python/coordinator/__pycache__/
-agents/python/coordinator/*.py[cod]
-agents/python/coordinator/.pytest_cache/
+# Python Agent (agents/ folder)
+agents/__pycache__/
+agents/**/__pycache__/
+agents/*.py[cod]
+agents/**/*.py[cod]
+agents/venv/
+agents/.env
+agents/.env.local
+agents/**/*.so
 
-# Risk Assessment Agent  
-agents/python/risk_assessment/__pycache__/
-agents/python/risk_assessment/*.py[cod]
-agents/python/risk_assessment/.pytest_cache/
+# Keep this pattern if not already there
+venv/
+.venv/
+env/
+.env
+.env.local
 
-# News Analysis Agent
-agents/python/news_analysis/__pycache__/
-agents/python/news_analysis/*.py[cod]
-agents/python/news_analysis/.pytest_cache/
-
-# Portfolio Optimizer Agent
-agents/python/portfolio_optimizer/__pycache__/
-agents/python/portfolio_optimizer/*.py[cod]
-agents/python/portfolio_optimizer/.pytest_cache/
-
-# Shared Python components
-agents/python/shared/__pycache__/
-agents/python/shared/*.py[cod]
-
-# Python testing and cache
-agents/python/tests/__pycache__/
-agents/python/.pytest_cache/
-agents/python/htmlcov/
-agents/python/.coverage
-agents/python/.tox/
-
-# Python virtual environments
-agents/python/.venv/
-agents/python/venv/
-agents/python/env/
-agents/python/.env/
-
-# Python distribution / packaging
-agents/python/build/
-agents/python/develop-eggs/
-agents/python/dist/
-agents/python/downloads/
-agents/python/eggs/
-agents/python/.eggs/
-agents/python/lib/
-agents/python/lib64/
-agents/python/parts/
-agents/python/sdist/
-agents/python/var/
-agents/python/wheels/
-agents/python/*.egg-info/
-agents/python/.installed.cfg
-agents/python/*.egg
-agents/python/MANIFEST
 
 # ===================================================================
 # JAVA AGENT - MARKET RESEARCH

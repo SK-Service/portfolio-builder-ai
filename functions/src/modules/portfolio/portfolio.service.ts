@@ -1,14 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   GeneratePortfolioRequestDto,
   PortfolioRecommendationDto,
 } from '../../common/dto/portfolio.dto';
-import { environment } from '../../config/environment';
+import { AgentService } from '../../services/agent/agent.service';
 import { MockAgentService } from '../../services/mocks/mock-agent.service';
 
 @Injectable()
 export class PortfolioService {
-  constructor(private readonly mockAgentService: MockAgentService) {}
+  private readonly logger = new Logger(PortfolioService.name);
+  private readonly useMock: boolean;
+
+  constructor(
+    private readonly mockAgentService: MockAgentService,
+    private readonly agentService: AgentService,
+  ) {
+    this.useMock = process.env.USE_MOCK_AGENTS === 'true';
+    this.logger.log(
+      `Portfolio Service initialized. Using ${this.useMock ? 'MOCK' : 'REAL'}agent.`,
+    );
+  }
 
   /**
    * Generate portfolio recommendation
@@ -17,13 +28,13 @@ export class PortfolioService {
   async generatePortfolio(
     request: GeneratePortfolioRequestDto,
   ): Promise<PortfolioRecommendationDto> {
-    if (environment.useMockAgents) {
-      console.log('Using mock agent for portfolio generation');
+    this.logger.log('Generating portfolio...');
+
+    if (this.useMock) {
+      this.logger.warn('Using MOCK agent service');
       return this.mockAgentService.generatePortfolioWithDelay(request);
-    } else {
-      console.log('Using real agent orchestrator (not implemented yet)');
-      // TODO: Call agent orchestrator in Step 10
-      throw new Error('Real agent integration not yet implemented');
     }
+
+    return this.agentService.generatePortfolio(request);
   }
 }
