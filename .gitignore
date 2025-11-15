@@ -2,6 +2,7 @@
 # Environment files with API keys
 .env
 .env.local
+.env.*.local
 .env.development
 .env.test
 .env.production
@@ -9,7 +10,12 @@
 *.env
 
 # Environment files with secrets
+frontend/src/environments/environment.ts
 frontend/src/environments/environment.prod.ts
+
+# But keep templates
+!frontend/src/environments/environment.template.ts
+!frontend/src/environments/environment.prod.template.ts
 
 # API key files
 *api_key*
