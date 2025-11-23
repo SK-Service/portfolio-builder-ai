@@ -1,11 +1,31 @@
+"""
+Security utilities for Agent.
+Compatible with functions_framework and Flask Request.
+"""
+
 import os
-from typing import Tuple, Optional
-from firebase_functions import https_fn
+from typing import Tuple, Optional, Dict
+from flask import Request
 
 
-def validate_request_headers(request: https_fn.Request) -> Tuple[bool, Optional[str]]:
+def verify_security_key(request: Request, expected_key: str) -> bool:
     """
-    Validate that the request has proper authentication headers.
+    Simple security key verification.
+    
+    Args:
+        request: Flask request object
+        expected_key: Expected API key value
+        
+    Returns:
+        True if key is valid, False otherwise
+    """
+    app_key = request.headers.get('X-Portfolio-App-Key')
+    return app_key == expected_key
+
+
+def validate_request_headers(request: Request) -> Tuple[bool, Optional[str]]:
+    """
+    Comprehensive request validation with detailed error messages.
     
     Returns:
         Tuple of (is_valid, error_message)
@@ -15,7 +35,6 @@ def validate_request_headers(request: https_fn.Request) -> Tuple[bool, Optional[
     expected_key = os.getenv('AGENT_API_KEY')
     
     if not expected_key:
-        # Configuration error - this should never happen in production
         return False, "Server configuration error: API key not set"
     
     # Check for required headers
@@ -40,10 +59,13 @@ def validate_request_headers(request: https_fn.Request) -> Tuple[bool, Optional[
     return True, None
 
 
-def get_cors_headers(request: https_fn.Request) -> dict:
+def get_cors_headers(request: Request) -> Dict[str, str]:
     """
     Generate CORS headers based on request origin.
     
+    Args:
+        request: Flask request object
+        
     Returns:
         Dictionary of CORS headers
     """

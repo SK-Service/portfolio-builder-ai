@@ -5,6 +5,12 @@ import {
 } from '../../common/dto/portfolio.dto';
 import { PortfolioService } from './portfolio.service';
 
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message: string;
+}
+
 @Controller('portfolio')
 export class PortfolioController {
   constructor(private readonly portfolioService: PortfolioService) {}
@@ -12,7 +18,12 @@ export class PortfolioController {
   @Post('generate')
   async generatePortfolio(
     @Body() request: GeneratePortfolioRequestDto,
-  ): Promise<PortfolioRecommendationDto> {
-    return this.portfolioService.generatePortfolio(request);
+  ): Promise<ApiResponse<PortfolioRecommendationDto>> {
+    const portfolio = await this.portfolioService.generatePortfolio(request);
+    return {
+      success: true,
+      data: portfolio,
+      message: 'Portfolio generated successfully',
+    };
   }
 }

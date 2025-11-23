@@ -27,9 +27,7 @@
   "functions": [
     {
       "source": "agents",
-      "codebase": "agent",
-      "runtime": "python313",
-      "region": "us-central1"
+      "runtime": "python313"
     }
   ],
   "firestore": {

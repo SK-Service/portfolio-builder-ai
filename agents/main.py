@@ -1,126 +1,148 @@
-import os
-import json
-import traceback
-from dotenv import load_dotenv
+"""
+Firebase Cloud Function: Portfolio Generator
+Phase 3: AI-powered portfolio generation using Anthropic Claude API
+"""
+
+print("=" * 60)
+print("LOADING main.py module...")
+print("=" * 60)
+
 from firebase_functions import https_fn, options
-from pydantic import ValidationError
+from firebase_admin import initialize_app
+import json
+from typing import Dict, Any, Optional
+import logging
 
-from src.models.dto import GeneratePortfolioRequestDto, PortfolioRecommendationDto
-from src.utils.security import validate_request_headers, get_cors_headers
+print("Standard imports OK")
+
+from config import config
+print(f"Config loaded - API key present: {bool(config.agent_api_key)}")
+
+from src.utils.security import verify_security_key
+print("Security utils loaded")
+
+from src.agent.anthropic_service import AnthropicService
+print("Anthropic service loaded")
+
 from src.agent.hardcoded_portfolio import generate_hardcoded_portfolio
+print("Hardcoded portfolio loaded")
+
+# Initialize Firebase Admin SDK (required at module level)
+initialize_app()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Lazy-loaded service
+_anthropic_service: Optional[AnthropicService] = None
+
+# Helper function for creating responses
+def create_response(data: Any, status: int = 200) -> https_fn.Response:
+    """Helper to create JSON responses with proper headers"""
+    return https_fn.Response(
+        json.dumps(data),
+        status=status,
+        headers={"Content-Type": "application/json"}
+    )
+
+print("About to define generatePortfolio function...")
 
 
-# Load environment variables from .env file for local development
-load_dotenv()
+def get_anthropic_service() -> AnthropicService:
+    """Get or create Anthropic service instance (lazy initialization)."""
+    global _anthropic_service
+    if _anthropic_service is None:
+        logger.info("Initializing Anthropic service...")
+        _anthropic_service = AnthropicService()
+    return _anthropic_service
 
 
-# Configure function options
 @https_fn.on_request(
-    timeout_sec=540,
-    memory=options.MemoryOption.GB_1,
-    region="us-central1"
+    cors=options.CorsOptions(
+        cors_origins="*",
+        cors_methods=["POST", "OPTIONS"]
+    )
 )
 def generatePortfolio(request: https_fn.Request) -> https_fn.Response:
     """
-    HTTP Cloud Function to generate investment portfolio recommendations.
+    HTTP Cloud Function to generate AI-powered portfolio recommendations.
     
-    This function:
-    1. Validates security headers
-    2. Parses and validates request body
-    3. Generates portfolio recommendation
-    4. Returns structured response
-    
-    Args:
-        request: HTTP request from BFF
-        
-    Returns:
-        JSON response with portfolio or error
+    Phase 2: Uses Anthropic Claude API with fallback to hardcoded portfolios.
     """
     
-    # Get CORS headers
-    cors_headers = get_cors_headers(request)
+    #DEBUG: Print received headers
+    print(f"DEBUG: Received headers: {dict(request.headers)}")
+    print(f"DEBUG: Looking for x-api-key: {request.headers.get('x-api-key')}")
+    print(f"DEBUG: Config API key: {config.agent_api_key}")
+
+    # Security check
+    if not verify_security_key(request, config.agent_api_key):
+        logger.warning("Unauthorized request - invalid API key")
+        return create_response({'error': 'Unauthorized'}, status=403)
     
-    # Handle preflight OPTIONS request
-    if request.method == 'OPTIONS':
-        return https_fn.Response(
-            status=204,
-            headers=cors_headers
-        )
-    
-    # Only allow POST requests
+    # Only accept POST
     if request.method != 'POST':
-        return https_fn.Response(
-            json.dumps({
-                "error": "Method not allowed. Use POST."
-            }),
-            status=405,
-            headers={**cors_headers, 'Content-Type': 'application/json'}
-        )
+        return create_response({'error': 'Method not allowed'}, status=405)
     
-    # Validate security headers
-    is_valid, error_message = validate_request_headers(request)
-    if not is_valid:
-        return https_fn.Response(
-            json.dumps({
-                "error": error_message
-            }),
-            status=403,
-            headers={**cors_headers, 'Content-Type': 'application/json'}
-        )
-    
+    # Parse and validate request
     try:
-        # Parse request body
         request_json = request.get_json(silent=True)
-        
         if not request_json:
-            return https_fn.Response(
-                json.dumps({
-                    "error": "Invalid JSON in request body"
-                }),
-                status=400,
-                headers={**cors_headers, 'Content-Type': 'application/json'}
-            )
+            return create_response({'error': 'Invalid JSON'}, status=400)
         
-        # Validate request data against DTO schema
-        try:
-            request_data = GeneratePortfolioRequestDto(**request_json)
-        except ValidationError as e:
-            return https_fn.Response(
-                json.dumps({
-                    "error": f"Invalid request data: {str(e)}"
-                }),
-                status=400,
-                headers={**cors_headers, 'Content-Type': 'application/json'}
-            )
+        risk_tolerance = request_json.get('riskTolerance')
+        investment_horizon = request_json.get('investmentHorizonYears')
+        country = request_json.get('country')
+        investment_amount = request_json.get('investmentAmount')
+        currency = request_json.get('currency', 'USD')
         
-        # Generate portfolio using hardcoded data for Phase 1
-        portfolio = generate_hardcoded_portfolio(request_data)
+        # Validate required fields
+        if not all([risk_tolerance, investment_horizon, country, investment_amount]):
+            return create_response({'error': 'Missing required fields'}, status=400)
+            
+    except Exception as e:
+        logger.error(f"Error parsing request: {e}")
+        return create_response({'error': f'Invalid request: {str(e)}'}, status=400)
+    
+    # Generate portfolio using Claude API
+    try:
+        logger.info(f"Generating AI portfolio: {risk_tolerance} risk, {investment_horizon}y, {country}, {currency}{investment_amount}")
         
-        # Convert response to dict for JSON serialization
-        response_dict = portfolio.model_dump()
+        # Get service (lazy init)
+        anthropic_service = get_anthropic_service()
         
-        # Return successful response
-        return https_fn.Response(
-            json.dumps(response_dict),
-            status=200,
-            headers={**cors_headers, 'Content-Type': 'application/json'}
+        portfolio = anthropic_service.generate_portfolio(
+            risk_tolerance=risk_tolerance,
+            investment_horizon_years=investment_horizon,
+            country=country,
+            investment_amount=investment_amount,
+            currency=currency
         )
+        
+        logger.info(f"Successfully generated AI portfolio with {len(portfolio['recommendations'])} stocks")
         
     except Exception as e:
-        # Log the full error for debugging
-        error_traceback = traceback.format_exc()
-        print(f"Error generating portfolio: {error_traceback}")
+        logger.error(f"Claude API failed: {type(e).__name__}: {e}")
+        logger.info("Falling back to hardcoded portfolio")
         
-        # Return error response
-        return https_fn.Response(
-            json.dumps({
-                "error": f"Internal server error: {str(e)}",
-                "recommendations": [],
-                "totalExpectedReturn": 0,
-                "riskScore": 0,
-                "projectedGrowth": [],
-                "generatedAt": "",
-            }),
-            status=500,
-            headers={**cors_headers, 'Content-Type': 'application/json'}
-        )
+        # Fallback to hardcoded portfolio if Claude fails
+        try:
+            portfolio = generate_hardcoded_portfolio(
+                risk_tolerance=risk_tolerance,
+                investment_horizon_years=investment_horizon,
+                country=country,
+                investment_amount=investment_amount
+            )
+            portfolio['error'] = f'AI generation unavailable, using fallback portfolio'
+            logger.info(f"Fallback portfolio generated with {len(portfolio['recommendations'])} stocks")
+            
+        except Exception as fallback_error:
+            logger.error(f"Fallback also failed: {fallback_error}")
+            return create_response({
+                'error': 'Portfolio generation failed',
+                'details': str(e)
+            }, status=500)
+    
+    # Return with CORS headers
+    return create_response(portfolio)
