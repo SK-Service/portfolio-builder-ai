@@ -54,7 +54,10 @@ def get_anthropic_service() -> AnthropicService:
     global _anthropic_service
     if _anthropic_service is None:
         logger.info("Initializing Anthropic service...")
-        _anthropic_service = AnthropicService()
+        _anthropic_service = AnthropicService(
+            alpha_vantage_key=config.alpha_vantage_api_key,
+            fred_key=config.fred_api_key
+        )
     return _anthropic_service
 
 

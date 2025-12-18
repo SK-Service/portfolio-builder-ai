@@ -90,6 +90,7 @@ agents/venv/
 agents/.env
 agents/.env.local
 agents/**/*.so
+agents/*.egg-info/
 
 # Keep this pattern if not already there
 venv/
@@ -378,3 +379,24 @@ docs/dist/
 # User uploaded files (if any)
 uploads/
 user-files/
+
+# Batch job outputs (derived data)
+batch_output/
+batch_jobs/batch_output/
+agents/batch_jobs/batch_output/
+agents/batch_jobs/batch_output/*.*
+
+# Progress tracking (local state)
+*_progress.json
+
+# Stock Data Files
+agents/batch_jobs/stockdata
+agents/batch_jobs/stockdata/*.csv
+agents/batch_jobs/stock_universe_seeds.csv
+agents/batch_jobs/test_stock.csv
+agents/batch_jobs/twelvedata*
+agents/batch_jobs/stock*.json
+agents/batch_jobs/*.json
+agents/batch_jobs/*.csv
+agents/batch_jobs/*.txt
+agents/batch_jobs/*.text

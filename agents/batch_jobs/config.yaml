@@ -1,0 +1,109 @@
+# =============================================================================
+# BATCH JOBS CONFIGURATION
+# Investment Portfolio Builder - Data Integration
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# MODE CONFIGURATION
+# -----------------------------------------------------------------------------
+# Stock counts per sector per country
+stock_counts:
+  testing: 5
+  production: 50
+
+# Current mode - CHANGE THIS when ready for production
+mode: production # Options: 'testing' or 'production'
+
+# -----------------------------------------------------------------------------
+# GEOGRAPHIC & SECTOR CONFIGURATION
+# -----------------------------------------------------------------------------
+countries:
+  - USA
+  - Canada
+  - EU
+  - India
+
+sectors:
+  - technology
+  - healthcare
+  - finance
+  - energy
+  - consumer_staples
+  - consumer_discretionary
+  - industrials
+  - utilities
+  - real_estate
+  - materials
+
+# -----------------------------------------------------------------------------
+# DATA API CONFIGURATION
+# -----------------------------------------------------------------------------
+twelve_data:
+  # Rate limiting -  610 credits/minute
+  credits_per_minute_limit: 610 # Stay under 610 with buffer
+
+  # Batch processing settings
+  batch_size: 6 # Stocks per batch (optimized for credit limit)
+  batch_interval_seconds: 30 # Wait between batches
+
+  # Request settings
+  max_retries: 3
+  timeout: 60 # Longer timeout for batch requests
+
+  # Real-time API control (for testing)
+  enable_realtime_api_calls: false # Set to true in production
+
+  # API credit costs (for reference and calculations)
+  credits:
+    statistics: 50
+    analyst_ratings_light: 75
+    recommendations: 100
+    price_target: 75
+
+# -----------------------------------------------------------------------------
+# SENTIMENT CONFIGURATION
+# -----------------------------------------------------------------------------
+sentiment:
+  # Mode: "full" (all 3 endpoints, 250 credits) or "recommendations_only" (100 credits)
+  mode: "full"
+
+  # Auto-select: true picks 1 large-cap stock per sector/country
+  # false processes all stocks in input_file
+  auto_select: true
+
+  # Input file (same format as stock_universe_seeds.csv)
+  input_file: "stock_universe_seeds.csv"
+
+  # Cache TTL - how long before sentiment data is considered stale
+  cache_ttl_days: 30 # Reuse sentiment data for 30 days
+
+  # Fallback behavior
+  use_sector_fallback: true # If no data for stock, use sector proxy
+
+# -----------------------------------------------------------------------------
+# OUTPUT PATHS
+# -----------------------------------------------------------------------------
+output:
+  base_dir: batch_output
+  stock_universe: batch_output/stock_universe
+  fundamentals: batch_output/fundamentals
+  sentiment: batch_output/sentiment
+  progress: batch_output/progress
+
+# -----------------------------------------------------------------------------
+# FIRESTORE COLLECTIONS
+# -----------------------------------------------------------------------------
+firestore:
+  collections:
+    stock_universe: stock_universe
+    fundamentals: stock_fundamentals
+    sentiment: market_sentiment
+    api_usage: api_usage
+    config: config
+
+# -----------------------------------------------------------------------------
+# LOGGING CONFIGURATION
+# -----------------------------------------------------------------------------
+logging:
+  level: INFO # Options: DEBUG, INFO, WARNING, ERROR
+  file: batch_jobs.log
