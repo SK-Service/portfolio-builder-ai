@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class ToolRegistry:
     """Registry for managing available agent tools."""
     
-    def __init__(self, fred_key: str = None):
+    def __init__(self, alpha_vantage_key: str = None, fred_key: str = None):
         """
         Initialize registry.
         
@@ -36,11 +36,11 @@ class ToolRegistry:
         """Register all available tools."""
         
         # Macro economic data tool (uses FRED API)
-        if fred_key:
-            macro_tool = MacroEconomicDataTool(fred_key)
-            self.register(macro_tool)
-        else:
-            logger.warning("FRED API key not provided, MacroEconomicDataTool not registered")
+        # if fred_key:
+        #     macro_tool = MacroEconomicDataTool(fred_key)
+        #     self.register(macro_tool)
+        # else:
+        #     logger.warning("FRED API key not provided, MacroEconomicDataTool not registered")
         
         # Stock universe tool (reads from Firestore)
         stock_universe_tool = StockUniverseTool()
@@ -51,8 +51,8 @@ class ToolRegistry:
         self.register(fundamentals_tool)
         
         # Market sentiment tool (reads from Firestore with real-time API fallback)
-        sentiment_tool = MarketSentimentTool()
-        self.register(sentiment_tool)
+        # sentiment_tool = MarketSentimentTool()
+        # self.register(sentiment_tool)
         
         logger.info(f"Registered {len(self._tools)} tools: {list(self._tools.keys())}")
     

@@ -316,6 +316,7 @@ def parse_statistics_response(symbol: str, exchange: str, name: str,
         'symbol': symbol,
         'name': name or meta.get('name', ''),
         'exchange': exchange if exchange else 'USA',
+        'currency': meta.get('currency', ''),  # e.g., USD, INR, EUR, CAD
         'country': country,
         'sector': sector,
         
@@ -417,10 +418,11 @@ def process_batch(batch_stocks: List[Dict], client: TwelveDataClient,
     
     Returns:
         Tuple of (success_count, failure_count, batch_failed)
-        batch_failed=True means the entire batch request failed (should retry)
+        batch_failed=True means the entire batch request failed OR rate limit hit (should retry)
     """
     success_count = 0
     failure_count = 0
+    rate_limit_in_batch = False  # Track if any request in batch hit rate limit
     
     # Build batch request
     requests_dict = {}
@@ -497,6 +499,26 @@ def process_batch(batch_stocks: List[Dict], client: TwelveDataClient,
             # Handle nested response structure
             if req_response.get('status') == 'success' and 'response' in req_response:
                 stats_data = req_response['response']
+                
+                # CRITICAL: Check if the nested response is actually a rate limit error
+                # Twelve Data returns: {"status": "success", "response": {"code": 429, "message": "...", "status": "error"}}
+                if isinstance(stats_data, dict) and stats_data.get('status') == 'error':
+                    error_code = stats_data.get('code', 'N/A')
+                    error_msg = stats_data.get('message', 'Unknown error')
+                    
+                    # Check for rate limit (429) - this should trigger batch retry
+                    if error_code == 429 or 'rate limit' in str(error_msg).lower() or 'api credits' in str(error_msg).lower():
+                        logger.warning(f"{symbol}: Per-request rate limit hit (code {error_code})")
+                        # Signal that this batch needs retry due to rate limiting
+                        rate_limit_in_batch = True
+                        failure_count += 1
+                        continue
+                    else:
+                        logger.warning(f"{symbol}: Nested API error - {error_msg} (code: {error_code})")
+                        job_stats.add_failed_api_error(symbol, f"{error_msg} (code: {error_code})")
+                        tracker.mark_failed(symbol, error_msg, "api_error")
+                        failure_count += 1
+                        continue
             else:
                 stats_data = req_response
         else:
@@ -544,6 +566,11 @@ def process_batch(batch_stocks: List[Dict], client: TwelveDataClient,
         pe_str = f"PE: {fundamentals.get('pe_ratio')}" if fundamentals.get('pe_ratio') else "PE: N/A"
         mc_str = f"MktCap: {fundamentals.get('market_cap'):,.0f}" if fundamentals.get('market_cap') else "MktCap: N/A"
         logger.info(f"[OK] {symbol}: Saved ({pe_str}, {mc_str})")
+    
+    # If any request in batch hit rate limit, signal batch retry
+    if rate_limit_in_batch:
+        logger.warning(f"Batch contained rate-limited requests - signaling retry")
+        return success_count, failure_count, True  # batch_failed=True to trigger retry
     
     return success_count, failure_count, False
 
@@ -651,12 +678,14 @@ def main():
                 credit_tracker.use_credits(credits_needed)
                 
                 if batch_failed:
-                    # Batch request failed (e.g., malformed JSON from API)
+                    # Batch request failed (e.g., malformed JSON or rate limit hit)
                     if retry < max_retries - 1:
                         job_stats.increment_retries()
-                        logger.warning(f"Batch {batch_num} failed, retry {retry + 2}/{max_retries} in 5 seconds...")
-                        print(f"  [!] Batch failed (buggy API response), will retry...")
-                        time.sleep(5)
+                        logger.warning(f"Batch {batch_num} failed, retry {retry + 2}/{max_retries}...")
+                        print(f"  [!] Batch failed, will retry after credit reset...")
+                        # Force wait for next minute to ensure rate limit is cleared
+                        # This handles both malformed JSON (rare) and rate limit (more common)
+                        credit_tracker.force_wait_for_reset()
                         continue
                     else:
                         # All retries exhausted, mark stocks as failed

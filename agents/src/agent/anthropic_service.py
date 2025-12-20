@@ -294,23 +294,27 @@ class AnthropicService:
         
         # Strip markdown code fences if present
         content = text_content.strip()
-        if content.startswith('```'):
-            # Remove opening fence
-            content = content.split('```', 1)[1]
-            # Remove 'json' language identifier if present
-            if content.startswith('json'):
-                content = content[4:]
-            # Remove closing fence
-            if '```' in content:
-                content = content.rsplit('```', 1)[0]
-            content = content.strip()
+        # if content.startswith('```'):
+        #     # Remove opening fence
+        #     content = content.split('```', 1)[1]
+        #     # Remove 'json' language identifier if present
+        #     if content.startswith('json'):
+        #         content = content[4:]
+        #     # Remove closing fence
+        #     if '```' in content:
+        #         content = content.rsplit('```', 1)[0]
+        #     content = content.strip()
+        if '{' in content and '}' in content:
+            start = content.find('{')
+            end = content.rfind('}') + 1
+            content = content[start:end]
         
         # Parse JSON from response
         try:
             portfolio_data = json.loads(content)
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse Claude response as JSON: {e}")
-            logger.error(f"Response content: {content[:500]}...")
+            logger.error(f"Response content: {content}...")
             raise ValueError(f"Invalid JSON response from Claude: {e}")
         
         # Validate required fields

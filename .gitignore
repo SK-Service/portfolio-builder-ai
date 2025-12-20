@@ -390,6 +390,7 @@ agents/batch_jobs/batch_output/*.*
 *_progress.json
 
 # Stock Data Files
+agents/*.json
 agents/batch_jobs/stockdata
 agents/batch_jobs/stockdata/*.csv
 agents/batch_jobs/stock_universe_seeds.csv

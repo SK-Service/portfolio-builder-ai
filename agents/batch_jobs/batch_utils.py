@@ -154,6 +154,21 @@ class CreditTracker:
         self._reset_if_new_minute()
         return self.credits_per_minute - self.credits_used_this_minute
     
+    def force_wait_for_reset(self):
+        """Force wait until the next minute, regardless of credit usage.
+        Use this when rate limit errors are detected in responses."""
+        now = datetime.now(timezone.utc)
+        elapsed = (now - self.minute_start_time).total_seconds()
+        wait_seconds = max(5, 62 - elapsed)  # At least 5 seconds, up to 62 seconds
+        
+        logger.info(f"Force waiting {wait_seconds:.0f} seconds for rate limit reset...")
+        print(f"\n  ⏳ Rate limit hit: Force waiting {wait_seconds:.0f}s for credit reset...")
+        time.sleep(wait_seconds)
+        
+        # Reset after waiting
+        self.credits_used_this_minute = 0
+        self.minute_start_time = datetime.now(timezone.utc)
+    
     def get_summary(self) -> str:
         """Get credit usage summary."""
         return (f"Credits - This minute: {self.credits_used_this_minute}/{self.credits_per_minute}, "
@@ -473,9 +488,43 @@ class TwelveDataClient:
             return None
 
 
+# Windows reserved device names that cannot be used as filenames
+WINDOWS_RESERVED_NAMES = {
+    'CON', 'PRN', 'AUX', 'NUL',
+    'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
+    'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+}
+
+
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize filename to handle Windows reserved names.
+    PRN, CON, AUX, NUL, COM1-9, LPT1-9 are reserved on Windows.
+    """
+    # Get the base name without extension
+    name_part = filename.rsplit('.', 1)[0] if '.' in filename else filename
+    ext_part = '.' + filename.rsplit('.', 1)[1] if '.' in filename else ''
+    
+    # Check if it's a reserved name (case-insensitive)
+    if name_part.upper() in WINDOWS_RESERVED_NAMES:
+        # Prefix with underscore to make it valid
+        return f"_{name_part}{ext_part}"
+    
+    return filename
+
+
 def save_json(data: Any, filepath: Path, pretty: bool = True):
-    """Save data to JSON file."""
-    with open(filepath, 'w') as f:
+    """Save data to JSON file. Handles Windows reserved filenames."""
+    # Sanitize the filename for Windows compatibility
+    sanitized_name = sanitize_filename(filepath.name)
+    if sanitized_name != filepath.name:
+        filepath = filepath.parent / sanitized_name
+        logger.info(f"Renamed reserved filename: {filepath.name} -> {sanitized_name}")
+    
+    # Ensure parent directory exists
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
         if pretty:
             json.dump(data, f, indent=2, default=str)
         else:
