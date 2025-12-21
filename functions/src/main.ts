@@ -1,7 +1,12 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import * as dotenv from 'dotenv';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import dotenv from 'dotenv';
+import express from 'express';
+import * as admin from 'firebase-admin';
+import { onRequest } from 'firebase-functions/v2/https';
 
+// Load env in non-production
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
@@ -9,8 +14,20 @@ if (process.env.NODE_ENV !== 'production') {
 import { AppModule } from './app.module';
 import { environment } from './config/environment';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+// Initialize Firebase Admin (required for App Check verification)
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+const expressApp = express();
+
+const createNestServer = async (
+  expressInstance: express.Express,
+): Promise<void> => {
+  const app = await NestFactory.create(
+    AppModule,
+    new ExpressAdapter(expressInstance),
+  );
 
   // Global prefix for all routes
   app.setGlobalPrefix('api');
@@ -31,6 +48,7 @@ async function bootstrap() {
         console.error('CORS: Origin header required in production');
         return callback(new Error('Origin header required'));
       }
+
       // Check if origin is in allowed list
       if (environment.security.allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -45,6 +63,7 @@ async function bootstrap() {
       'Content-Type',
       'Authorization',
       'X-Portfolio-App-Key',
+      'X-Firebase-AppCheck',
       'X-Requested-With',
     ],
   });
@@ -58,18 +77,47 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.PORT || 5001;
-  await app.listen(port);
+  await app.init();
+  console.log('NestJS BFF initialized for Firebase Functions');
+};
 
-  console.log(`BFF Server running on http://localhost:${port}/api`);
-  console.log(
-    `Environment: ${environment.production ? 'production' : 'development'}`,
-  );
-  console.log(`Using mock agents: ${environment.useMockAgents}`);
-  console.log(`CORS: No-origin allowed: ${!environment.production}`);
+// Initialize NestJS on cold start
+let isInitialized = false;
+const ensureInitialized = async (): Promise<void> => {
+  if (!isInitialized) {
+    await createNestServer(expressApp);
+    isInitialized = true;
+  }
+};
+
+// Initialize immediately for Firebase Functions
+void ensureInitialized();
+
+// Export the Firebase Function (v2)
+export const api = onRequest(
+  {
+    region: 'us-central1',
+    timeoutSeconds: 60,
+    memory: '512MiB',
+  },
+  expressApp,
+);
+
+// Local development server (only runs when not in Firebase Functions environment)
+if (process.env.FUNCTIONS_EMULATOR !== 'true' && !process.env.FUNCTION_TARGET) {
+  const bootstrap = async (): Promise<void> => {
+    await createNestServer(expressApp);
+    const port = process.env.PORT ?? 5001;
+    expressApp.listen(port, () => {
+      console.log(`BFF Server running on http://localhost:${String(port)}/api`);
+      console.log(
+        `Environment: ${environment.production ? 'production' : 'development'}`,
+      );
+      console.log(`Using mock agents: ${String(environment.useMockAgents)}`);
+    });
+  };
+  bootstrap().catch((err: unknown) => {
+    console.error('Failed to start BFF server:', err);
+    process.exit(1);
+  });
 }
-
-bootstrap().catch((err) => {
-  console.error('Failed to start BFF server:', err);
-  process.exit(1);
-});

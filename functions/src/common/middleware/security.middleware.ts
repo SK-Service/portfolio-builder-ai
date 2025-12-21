@@ -1,51 +1,59 @@
 import {
+  HttpException,
+  HttpStatus,
   Injectable,
   NestMiddleware,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
+import * as admin from 'firebase-admin';
 import { environment } from '../../config/environment';
 
 @Injectable()
 export class SecurityMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
-    // Skip security check for health endpoint
-    if (req.path === '/health' || req.path === '/') {
+  async use(req: Request, res: Response, next: NextFunction) {
+    // Skip security for health check endpoints
+    if (req.path === '/api/health' || req.path === '/health') {
       return next();
     }
 
-    // Check for required app key header
+    // Skip for OPTIONS (CORS preflight)
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
+    // Validate App Check token (primary security)
+    const appCheckToken = req.headers['x-firebase-appcheck'] as string;
+
+    if (environment.production) {
+      if (!appCheckToken) {
+        console.error('Security: Missing App Check token');
+        throw new HttpException(
+          'Unauthorized: App Check required',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      try {
+        await admin.appCheck().verifyToken(appCheckToken);
+      } catch (error) {
+        console.error('Security: Invalid App Check token', error);
+        throw new HttpException(
+          'Unauthorized: Invalid App Check token',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+    }
+
+    // Validate app key (secondary check, defense in depth)
     const appKey = req.headers['x-portfolio-app-key'] as string;
-
-    const expectedKey = environment.security.requiredAppKey;
-
-    console.log('DEBUG - Received key:', appKey?.substring(0, 20) + '...');
-    console.log('DEBUG - Expected key:', expectedKey?.substring(0, 20) + '...');
-    console.log('DEBUG - Keys match:', appKey === expectedKey);
-
-    const requestedWith = req.headers['x-requested-with'] as string;
-
-    // Validate app key
     if (!appKey || appKey !== environment.security.requiredAppKey) {
-      console.error('Security: Invalid or missing X-Portfolio-App-Key header');
-      throw new UnauthorizedException({
-        statusCode: 401,
-        message: 'Invalid or missing authentication credentials',
-        error: 'Unauthorized',
-      });
+      console.error('Security: Invalid or missing app key');
+      throw new HttpException(
+        'Unauthorized: Invalid credentials',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
-    // Validate X-Requested-With header (CSRF protection)
-    if (!requestedWith || requestedWith !== 'XMLHttpRequest') {
-      console.error('Security: Invalid or missing X-Requested-With header');
-      throw new UnauthorizedException({
-        statusCode: 401,
-        message: 'Invalid request headers',
-        error: 'Unauthorized',
-      });
-    }
-
-    console.log(`Security: Request authorized for ${req.method} ${req.path}`);
     next();
   }
 }

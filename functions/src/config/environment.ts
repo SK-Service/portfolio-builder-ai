@@ -1,24 +1,24 @@
 export const environment = {
-  production: false,
+  production: process.env.NODE_ENV === 'production',
 
-  // Mock toggle - CRITICAL for development
-  useMockAgents: true, // Set to false when agents ready
+  // Mock toggle - set to false for production
+  useMockAgents: process.env.USE_MOCK_AGENTS === 'true',
 
   // Firebase configuration
   firebase: {
-    projectId: process.env.FIREBASE_PROJECT_ID || 'portfolio-builder-ai',
-    databaseURL: 'https://portfolio-builder-ai.firebaseio.com',
+    projectId: process.env.FIREBASE_PROJECT_ID || 'portfolio-builder-ai-1da81',
   },
 
   // Security
   security: {
     allowedOrigins: [
-      'https://portfolio-builder-ai.web.app',
-      'https://portfolio-builder-ai.firebaseapp.com',
-      'http://localhost:4200', // Local Angular development
+      'https://portfolio-builder-ai-1da81.web.app',
+      'https://portfolio-builder-ai-1da81.firebaseapp.com',
+      'http://localhost:4200',
+      'http://localhost:5000',
     ],
     requiredAppKey:
-      process.env.PORTFOLIO_APP_KEY || 'dev-portfolio-app-key-12345',
+      process.env.PORTFOLIO_APP_KEY || 'dev-key-change-in-production',
   },
 
   // Rate limiting
@@ -27,11 +27,13 @@ export const environment = {
     windowHours: 24,
   },
 
-  // Agent configuration (for future)
+  // Agent configuration
   agents: {
-    orchestratorUrl:
-      process.env.AGENT_ORCHESTRATOR_URL || 'http://localhost:8080',
-    timeout: 30000, // 30 seconds
+    apiKey: process.env.AGENT_API_KEY || '',
+    generatePortfolioUrl:
+      process.env.AGENT_FUNCTION_URL ||
+      `https://us-central1-${process.env.FIREBASE_PROJECT_ID || 'portfolio-builder-ai-1da81'}.cloudfunctions.net/generatePortfolio`,
+    timeout: 60000,
   },
 
   // Firestore collections
@@ -42,7 +44,7 @@ export const environment = {
 
   // Logging
   logging: {
-    level: process.env.LOG_LEVEL || 'debug',
-    enableRequestLogging: true,
+    level: process.env.LOG_LEVEL || 'info',
+    enableRequestLogging: process.env.NODE_ENV !== 'production',
   },
 };
