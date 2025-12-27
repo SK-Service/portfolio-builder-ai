@@ -38,15 +38,10 @@ const createNestServer = async (
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      // Allow requests with no origin in development only (Postman, curl)
-      if (!origin && !environment.production) {
-        return callback(null, true);
-      }
-
-      // Production: Require origin header
+      // Allow requests with no origin (health checks, server-to-server, direct access)
+      // Security is enforced by security.middleware.ts for non-health endpoints
       if (!origin) {
-        console.error('CORS: Origin header required in production');
-        return callback(new Error('Origin header required'));
+        return callback(null, true);
       }
 
       // Check if origin is in allowed list
