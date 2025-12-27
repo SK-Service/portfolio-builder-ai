@@ -39,7 +39,7 @@ jobs:
           FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
           PORTFOLIO_APP_KEY=${{ secrets.FRONTEND_APP_KEY }}
           AGENT_API_KEY=${{ secrets.AGENT_API_KEY }}
-          AGENT_FUNCTION_URL=https://us-central1-${{ secrets.FIREBASE_PROJECT_ID }}.cloudfunctions.net/generatePortfolio
+          AGENT_API_URL=https://us-central1-${{ secrets.FIREBASE_PROJECT_ID }}.cloudfunctions.net/generatePortfolio
           EOF
 
       - name: Build NestJS
