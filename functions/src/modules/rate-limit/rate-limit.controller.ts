@@ -6,6 +6,12 @@ import {
 } from '../../common/dto/rate-limit.dto';
 import { RateLimitService } from './rate-limit.service';
 
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message: string;
+}
+
 @Controller('rate-limit')
 export class RateLimitController {
   constructor(private readonly rateLimitService: RateLimitService) {}
@@ -13,14 +19,24 @@ export class RateLimitController {
   @Post('check')
   async checkRateLimit(
     @Body() request: CheckRateLimitRequestDto,
-  ): Promise<RateLimitResponseDto> {
-    return this.rateLimitService.checkRateLimit(request);
+  ): Promise<ApiResponse<RateLimitResponseDto>> {
+    const result = await this.rateLimitService.checkRateLimit(request);
+    return {
+      success: true,
+      data: result,
+      message: 'Rate limit checked successfully',
+    };
   }
 
   @Post('increment')
   async incrementRateLimit(
     @Body() request: IncrementRateLimitRequestDto,
-  ): Promise<RateLimitResponseDto> {
-    return this.rateLimitService.incrementRateLimit(request);
+  ): Promise<ApiResponse<RateLimitResponseDto>> {
+    const result = await this.rateLimitService.incrementRateLimit(request);
+    return {
+      success: true,
+      data: result,
+      message: 'Rate limit incremented successfully',
+    };
   }
 }
