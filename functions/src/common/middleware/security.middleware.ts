@@ -11,8 +11,24 @@ import { environment } from '../../config/environment';
 @Injectable()
 export class SecurityMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
+    // Debug logging - remove after fixing
+    console.log('Security middleware paths:', {
+      path: req.path,
+      originalUrl: req.originalUrl,
+      baseUrl: req.baseUrl,
+      url: req.url,
+    });
+
     // Skip security for health check endpoints
-    if (req.path === '/api/health' || req.path === '/health') {
+    // Check multiple path variations due to Firebase Functions URL handling
+    const isHealthCheck =
+      req.path === '/api/health' ||
+      req.path === '/health' ||
+      req.originalUrl?.endsWith('/health') ||
+      req.originalUrl?.endsWith('/api/health');
+
+    if (isHealthCheck) {
+      console.log('Security: Skipping health check');
       return next();
     }
 
