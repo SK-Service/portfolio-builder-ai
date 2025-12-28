@@ -89,7 +89,7 @@ const ensureInitialized = async (): Promise<void> => {
 void ensureInitialized();
 
 // Export the Firebase Function (v2)
-export const api = onRequest(
+export const bff = onRequest(
   {
     region: 'us-central1',
     timeoutSeconds: 60,

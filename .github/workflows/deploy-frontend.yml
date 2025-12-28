@@ -46,7 +46,7 @@ jobs:
               appId: '${{ secrets.FIREBASE_APP_ID }}'
             },
             api: {
-              baseUrl: 'https://us-central1-${{ secrets.FIREBASE_PROJECT_ID }}.cloudfunctions.net/api',
+              baseUrl: 'https://us-central1-${{ secrets.FIREBASE_PROJECT_ID }}.cloudfunctions.net/bff/api',
               endpoints: {
                 portfolio: '/portfolio',
                 config: '/config',
