@@ -23,7 +23,7 @@ export const environment = {
 
   // Rate limiting
   rateLimit: {
-    maxAttemptsPerFingerprint: 2,
+    maxAttemptsPerFingerprint: 100,
     windowHours: 24,
   },
 
