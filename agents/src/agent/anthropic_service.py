@@ -214,6 +214,8 @@ class AnthropicService:
                 tool_name = block.name
                 tool_input = block.input
                 tool_use_id = block.id
+                print(f"  [TOOL CALL] {tool_name}")
+                print(f"  [TOOL INPUT] {json.dumps(tool_input, indent=2)}")
                 
                 logger.info(f"Executing tool: {tool_name}")
                 logger.debug(f"Tool input: {json.dumps(tool_input, indent=2)}")
@@ -221,6 +223,7 @@ class AnthropicService:
                 # Execute tool (safe_execute handles all errors)
                 try:
                     result = self.tool_registry.execute_tool(tool_name, **tool_input)
+                    print(f"  [TOOL RESULT] {tool_name} returned {len(json.dumps(result))} chars")
                     
                     # Check if tool execution had errors
                     if result.get('success', True):

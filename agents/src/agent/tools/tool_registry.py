@@ -30,18 +30,15 @@ class ToolRegistry:
             fred_key: FRED API key for macro data tool
         """
         self._tools: Dict[str, BaseTool] = {}
-        self._register_tools(fred_key)
+        self._register_tools(alpha_vantage_key,fred_key)
     
-    def _register_tools(self, fred_key: str = None):
+    def _register_tools(self, alpha_vantage_key: str = None, fred_key: str = None):
         """Register all available tools."""
         
-        # Macro economic data tool (uses FRED API)
-        # if fred_key:
-        #     macro_tool = MacroEconomicDataTool(fred_key)
-        #     self.register(macro_tool)
-        # else:
-        #     logger.warning("FRED API key not provided, MacroEconomicDataTool not registered")
-        
+        # Macro economic data tool
+        macro_tool = MacroEconomicDataTool()
+        self.register(macro_tool)
+  
         # Stock universe tool (reads from Firestore)
         stock_universe_tool = StockUniverseTool()
         self.register(stock_universe_tool)

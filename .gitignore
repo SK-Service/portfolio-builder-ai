@@ -401,3 +401,9 @@ agents/batch_jobs/*.json
 agents/batch_jobs/*.csv
 agents/batch_jobs/*.txt
 agents/batch_jobs/*.text
+
+# Evals Results
+agents/evals/eval_results/
+agents/evals/eval_results/*.*
+agents/evals/test_cases/
+agents/evals/test_cases/*.*
