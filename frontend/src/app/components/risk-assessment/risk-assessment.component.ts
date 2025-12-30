@@ -1,3 +1,5 @@
+// portfolio-builder-ai/frontend/src/app/components/risk-assessment/risk-assessment.component.ts
+
 import { Component, OnInit } from "@angular/core";
 import {
   AbstractControl,
@@ -15,6 +17,7 @@ import {
   COUNTRY_CONFIGS,
   CountryConfig,
   Currency,
+  DEFAULT_MAX_INVESTMENT,
   RISK_TOLERANCE_OPTIONS,
   RiskAssessment,
 } from "../../shared/models";
@@ -175,14 +178,21 @@ export class RiskAssessmentComponent implements OnInit {
   private updateInvestmentAmountValidation(config: CountryConfig): void {
     const investmentAmountControl = this.assessmentForm.get("investmentAmount");
     if (investmentAmountControl) {
+      const maxAmount = this.getMaxInvestmentForCountry(config);
       investmentAmountControl.setValidators([
         Validators.required,
         Validators.min(config.minInvestmentAmount),
-        this.maxInvestmentValidator(config.maxInvestmentAmount),
+        this.maxInvestmentValidator(maxAmount),
         this.multipleOfHundredValidator(),
       ]);
       investmentAmountControl.updateValueAndValidity();
     }
+  }
+
+  // Helper to get max investment amount with fallback
+  private getMaxInvestmentForCountry(config: CountryConfig): number {
+    // Use config value if available, otherwise use default
+    return config.maxInvestmentAmount ?? DEFAULT_MAX_INVESTMENT[config.country];
   }
 
   acknowledgeDisclaimer(): void {
@@ -191,11 +201,14 @@ export class RiskAssessmentComponent implements OnInit {
   }
 
   getMinInvestmentAmount(): number {
-    return this.currentCountryConfig?.minInvestmentAmount || 5000;
+    return this.currentCountryConfig?.minInvestmentAmount ?? 5000;
   }
 
   getMaxInvestmentAmount(): number {
-    return this.currentCountryConfig?.maxInvestmentAmount || 1000000;
+    if (this.currentCountryConfig) {
+      return this.getMaxInvestmentForCountry(this.currentCountryConfig);
+    }
+    return 1000000; // Default fallback
   }
 
   onSubmit(): void {

@@ -53,7 +53,7 @@ export interface CountryConfig {
   currency: Currency;
   symbol: string;
   minInvestmentAmount: number;
-  maxInvestmentAmount: number;
+  maxInvestmentAmount?: number; // Optional for backward compatibility with API
 }
 
 // ============================================
@@ -63,6 +63,14 @@ export interface CountryConfig {
 export type Country = "USA" | "EU" | "Canada" | "India";
 export type Currency = "USD" | "EUR" | "CAD" | "INR";
 export type RiskTolerance = "Low" | "Medium" | "High";
+
+// Default max investment amounts per country (used when not provided by API)
+export const DEFAULT_MAX_INVESTMENT: Record<Country, number> = {
+  USA: 1000000,
+  EU: 1000000,
+  Canada: 1000000,
+  India: 10000000,
+};
 
 export const COUNTRY_CONFIGS: CountryConfig[] = [
   {

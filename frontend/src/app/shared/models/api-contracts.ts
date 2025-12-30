@@ -1,3 +1,5 @@
+// portfolio-builder-ai/frontend/src/app/shared/models/api-contracts.ts
+
 // API Request/Response contracts for BFF communication
 
 // ============================================
@@ -5,7 +7,7 @@
 // ============================================
 
 export interface GeneratePortfolioRequest {
-  riskTolerance: 'Low' | 'Medium' | 'High';
+  riskTolerance: "Low" | "Medium" | "High";
   investmentHorizonYears: number;
   country: Country;
   investmentAmount: number;
@@ -66,6 +68,7 @@ export interface CountryConfigDto {
   currency: Currency;
   symbol: string;
   minInvestmentAmount: number;
+  maxInvestmentAmount?: number; // Optional, future-proofing for when BFF provides this
 }
 
 export interface FeatureFlagsDto {
@@ -130,6 +133,6 @@ export interface ApiResponse<T> {
 }
 
 // Existing types (keep these for compatibility)
-export type Country = 'USA' | 'EU' | 'Canada' | 'India';
-export type Currency = 'USD' | 'EUR' | 'CAD' | 'INR';
-export type RiskTolerance = 'Low' | 'Medium' | 'High';
+export type Country = "USA" | "EU" | "Canada" | "India";
+export type Currency = "USD" | "EUR" | "CAD" | "INR";
+export type RiskTolerance = "Low" | "Medium" | "High";
