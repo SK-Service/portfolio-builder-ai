@@ -1,5 +1,80 @@
 /* portfolio-builder-ai/frontend/src/app/components/risk-assessment/risk-assessment.component.scss */
 
+/* Disclaimer Modal Styles */
+.disclaimer-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.disclaimer-modal {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  margin: 20px;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.disclaimer-content {
+  padding: 32px;
+  text-align: center;
+}
+
+.disclaimer-title {
+  font-size: 1.5rem;
+  color: #1976d2;
+  margin: 0 0 20px 0;
+  font-weight: 500;
+}
+
+.disclaimer-text {
+  font-size: 1rem;
+  color: #333;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+}
+
+.disclaimer-warning {
+  font-size: 0.95rem;
+  color: #d32f2f;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+  font-weight: 500;
+}
+
+.disclaimer-button {
+  min-width: 180px;
+  height: 44px;
+  font-size: 1rem;
+}
+
+/* Form disabled state when modal is visible */
+.form-disabled {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Main container styles */
 .risk-assessment-container {
   padding: 20px;
 }
@@ -56,7 +131,35 @@
   }
 }
 
-// Form field customizations
+/* Form field wrapper for fields with multiple errors */
+.form-field-wrapper {
+  margin-bottom: 16px;
+  
+  .mat-mdc-form-field {
+    margin-bottom: 0;
+  }
+}
+
+/* Error container for displaying multiple errors */
+.error-container {
+  min-height: 20px;
+  padding-top: 4px;
+  padding-left: 16px;
+  
+  mat-error {
+    display: block;
+    font-size: 0.75rem;
+    color: #f44336;
+    line-height: 1.4;
+    margin-bottom: 2px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+/* Form field customizations */
 .mat-mdc-form-field-hint-wrapper,
 .mat-mdc-form-field-error-wrapper {
   font-size: 0.75rem;
@@ -70,7 +173,7 @@
   color: #666;
 }
 
-// Responsive design
+/* Responsive design */
 @media (max-width: 768px) {
   .risk-assessment-container {
     padding: 10px;
@@ -97,5 +200,22 @@
       width: 100%;
       max-width: none;
     }
+  }
+  
+  .disclaimer-modal {
+    margin: 10px;
+  }
+  
+  .disclaimer-content {
+    padding: 24px;
+  }
+  
+  .disclaimer-title {
+    font-size: 1.3rem;
+  }
+  
+  .disclaimer-text,
+  .disclaimer-warning {
+    font-size: 0.9rem;
   }
 }

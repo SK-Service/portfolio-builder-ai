@@ -1,6 +1,30 @@
 <!-- portfolio-builder-ai/frontend/src/app/components/risk-assessment/risk-assessment.component.html -->
 
-<div class="risk-assessment-container max-width-600">
+<!-- Disclaimer Modal Overlay -->
+<div class="disclaimer-modal-overlay" *ngIf="showDisclaimerModal">
+  <div class="disclaimer-modal">
+    <div class="disclaimer-content">
+      <h2 class="disclaimer-title">Important Notice</h2>
+      <p class="disclaimer-text">
+        This is a demonstration application designed to showcase an agentic AI system. 
+        The investment recommendations provided are for illustrative purposes only and may contain errors.
+      </p>
+      <p class="disclaimer-warning">
+        Please do not rely on these recommendations for actual investment decisions. 
+        Always consult with a qualified financial advisor before making any investment choices.
+      </p>
+      <button 
+        mat-raised-button 
+        color="primary" 
+        class="disclaimer-button"
+        (click)="acknowledgeDisclaimer()">
+        Ready to Proceed
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="risk-assessment-container max-width-600" [class.form-disabled]="showDisclaimerModal">
   <mat-card class="assessment-card">
     <mat-card-header>
       <mat-card-title>Risk Assessment</mat-card-title>
@@ -24,20 +48,23 @@
         </mat-form-field>
 
         <!-- Investment Horizon -->
-        <mat-form-field class="full-width mb-2">
-          <mat-label>Investment Horizon (Years)</mat-label>
-          <input matInput 
-                 type="number" 
-                 formControlName="investmentHorizonYears"
-                 placeholder="e.g., 10"
-                 min="1"
-                 max="50">
-          <mat-error *ngIf="hasError('investmentHorizonYears', 'required') || 
-                            hasError('investmentHorizonYears', 'min') || 
-                            hasError('investmentHorizonYears', 'max')">
-            {{ getErrorMessage('investmentHorizonYears') }}
-          </mat-error>
-        </mat-form-field>
+        <div class="form-field-wrapper">
+          <mat-form-field class="full-width">
+            <mat-label>Investment Horizon (Years)</mat-label>
+            <input matInput 
+                   type="number" 
+                   formControlName="investmentHorizonYears"
+                   placeholder="e.g., 10"
+                   min="1"
+                   max="30"
+                   step="1">
+          </mat-form-field>
+          <div class="error-container">
+            <mat-error *ngFor="let error of getAllErrorMessages('investmentHorizonYears')">
+              {{ error }}
+            </mat-error>
+          </div>
+        </div>
 
         <!-- Country Selection -->
         <mat-form-field class="full-width mb-2">
@@ -53,19 +80,24 @@
         </mat-form-field>
 
         <!-- Investment Amount -->
-        <mat-form-field class="full-width mb-3">
-          <mat-label>Investment Amount ({{ selectedCurrencySymbol }})</mat-label>
-          <input matInput 
-                 type="number" 
-                 formControlName="investmentAmount"
-                 [placeholder]="'e.g., ' + selectedCurrencySymbol + getMinInvestmentAmount()"
-                 [min]="getMinInvestmentAmount()">
-          <mat-hint>Minimum: {{ selectedCurrencySymbol }}{{ getMinInvestmentAmount() }}</mat-hint>
-          <mat-error *ngIf="hasError('investmentAmount', 'required') || 
-                            hasError('investmentAmount', 'min')">
-            {{ getErrorMessage('investmentAmount') }}
-          </mat-error>
-        </mat-form-field>
+        <div class="form-field-wrapper">
+          <mat-form-field class="full-width">
+            <mat-label>Investment Amount ({{ selectedCurrencySymbol }})</mat-label>
+            <input matInput 
+                   type="number" 
+                   formControlName="investmentAmount"
+                   [placeholder]="'e.g., ' + selectedCurrencySymbol + getMinInvestmentAmount()"
+                   [min]="getMinInvestmentAmount()"
+                   [max]="getMaxInvestmentAmount()"
+                   step="100">
+            <mat-hint>Minimum: {{ selectedCurrencySymbol }}{{ getMinInvestmentAmount().toLocaleString() }}</mat-hint>
+          </mat-form-field>
+          <div class="error-container">
+            <mat-error *ngFor="let error of getAllErrorMessages('investmentAmount')">
+              {{ error }}
+            </mat-error>
+          </div>
+        </div>
 
         <!-- Action Buttons -->
         <div class="button-group">

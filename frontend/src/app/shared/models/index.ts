@@ -1,3 +1,5 @@
+// portfolio-builder-ai/frontend/src/app/shared/models/index.ts
+
 // Export all model interfaces
 
 // ============================================
@@ -50,29 +52,57 @@ export interface CountryConfig {
   country: Country;
   currency: Currency;
   symbol: string;
-  minInvestmentAmount?: number;  // Optional for now
+  minInvestmentAmount: number;
+  maxInvestmentAmount: number;
 }
 
 // ============================================
 // Type Definitions
 // ============================================
 
-export type Country = 'USA' | 'EU' | 'Canada' | 'India';
-export type Currency = 'USD' | 'EUR' | 'CAD' | 'INR';
-export type RiskTolerance = 'Low' | 'Medium' | 'High';
+export type Country = "USA" | "EU" | "Canada" | "India";
+export type Currency = "USD" | "EUR" | "CAD" | "INR";
+export type RiskTolerance = "Low" | "Medium" | "High";
 
 export const COUNTRY_CONFIGS: CountryConfig[] = [
-  { country: 'USA', currency: 'USD', symbol: '$', minInvestmentAmount: 100 },
-  { country: 'EU', currency: 'EUR', symbol: '€', minInvestmentAmount: 100 },
-  { country: 'Canada', currency: 'CAD', symbol: 'C$', minInvestmentAmount: 100 },
-  { country: 'India', currency: 'INR', symbol: '₹', minInvestmentAmount: 5000 }
+  {
+    country: "USA",
+    currency: "USD",
+    symbol: "$",
+    minInvestmentAmount: 5000,
+    maxInvestmentAmount: 1000000,
+  },
+  {
+    country: "EU",
+    currency: "EUR",
+    symbol: "€",
+    minInvestmentAmount: 5000,
+    maxInvestmentAmount: 1000000,
+  },
+  {
+    country: "Canada",
+    currency: "CAD",
+    symbol: "C$",
+    minInvestmentAmount: 5000,
+    maxInvestmentAmount: 1000000,
+  },
+  {
+    country: "India",
+    currency: "INR",
+    symbol: "₹",
+    minInvestmentAmount: 20000,
+    maxInvestmentAmount: 10000000,
+  },
 ];
 
-export const RISK_TOLERANCE_OPTIONS: RiskTolerance[] = ['Low', 'Medium', 'High'];
+export const RISK_TOLERANCE_OPTIONS: RiskTolerance[] = [
+  "Low",
+  "Medium",
+  "High",
+];
 
 // ============================================
 // Export API Contracts (NEW)
 // ============================================
 
-export * from './api-contracts';
-
+export * from "./api-contracts";

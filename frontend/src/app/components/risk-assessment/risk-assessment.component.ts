@@ -1,98 +1,207 @@
-// portfolio-builder-ai/frontend/src/app/components/risk-assessment/risk-assessment.component.ts
-
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
-import { RateLimitService } from '../../services/rate-limit.service';
-import { Country, COUNTRY_CONFIGS, Currency, RISK_TOLERANCE_OPTIONS, RiskAssessment } from '../../shared/models';
+import { Component, OnInit } from "@angular/core";
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from "@angular/forms";
+import { MatSnackBar } from "@angular/material/snack-bar";
+import { ActivatedRoute, Router } from "@angular/router";
+import { RateLimitService } from "../../services/rate-limit.service";
+import {
+  Country,
+  COUNTRY_CONFIGS,
+  CountryConfig,
+  Currency,
+  RISK_TOLERANCE_OPTIONS,
+  RiskAssessment,
+} from "../../shared/models";
 
 @Component({
-  selector: 'app-risk-assessment',
-  templateUrl: './risk-assessment.component.html',
-  styleUrls: ['./risk-assessment.component.scss']
+  selector: "app-risk-assessment",
+  templateUrl: "./risk-assessment.component.html",
+  styleUrls: ["./risk-assessment.component.scss"],
 })
 export class RiskAssessmentComponent implements OnInit {
   assessmentForm: FormGroup;
   countryConfigs = COUNTRY_CONFIGS;
   riskToleranceOptions = RISK_TOLERANCE_OPTIONS;
   isSubmitting = false;
-  selectedCurrency: Currency = 'USD';
-  selectedCurrencySymbol = '$';
+  selectedCurrency: Currency = "USD";
+  selectedCurrencySymbol = "$";
+
+  // Modal state
+  showDisclaimerModal = false;
+
+  // Current country config for validation messages
+  currentCountryConfig: CountryConfig | null = null;
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
+    private route: ActivatedRoute,
     private snackBar: MatSnackBar,
     private rateLimitService: RateLimitService
   ) {
     this.assessmentForm = this.fb.group({
-      riskTolerance: ['', Validators.required],
-      investmentHorizonYears: ['', [Validators.required, Validators.min(1), Validators.max(50)]],
-      country: ['', Validators.required],
-      investmentAmount: ['', [Validators.required, Validators.min(100)]]
+      riskTolerance: ["", Validators.required],
+      investmentHorizonYears: [
+        "",
+        [
+          Validators.required,
+          Validators.min(1),
+          Validators.max(30),
+          this.wholeNumberValidator(),
+        ],
+      ],
+      country: ["", Validators.required],
+      investmentAmount: [
+        "",
+        [
+          Validators.required,
+          Validators.min(5000),
+          this.multipleOfHundredValidator(),
+        ],
+      ],
     });
   }
 
   ngOnInit(): void {
-    // Subscribe to country changes to update currency
-    this.assessmentForm.get('country')?.valueChanges.subscribe((country: Country) => {
-      if (country) {
-        const config = this.countryConfigs.find(c => c.country === country);
-        if (config) {
-          this.selectedCurrency = config.currency;
-          this.selectedCurrencySymbol = config.symbol;
-          // Update validation for investment amount based on currency
-          this.updateInvestmentAmountValidation(country);
+    // Check if disclaimer has been acknowledged this session
+    const disclaimerAcknowledged = sessionStorage.getItem(
+      "disclaimerAcknowledged"
+    );
+    if (!disclaimerAcknowledged) {
+      this.showDisclaimerModal = true;
+    }
+
+    // Check if we are in modify mode
+    const mode = this.route.snapshot.queryParamMap.get("mode");
+    if (mode === "modify") {
+      this.loadExistingAssessment();
+    }
+
+    // Subscribe to country changes to update currency and validation
+    this.assessmentForm
+      .get("country")
+      ?.valueChanges.subscribe((country: Country) => {
+        if (country) {
+          const config = this.countryConfigs.find((c) => c.country === country);
+          if (config) {
+            this.currentCountryConfig = config;
+            this.selectedCurrency = config.currency;
+            this.selectedCurrencySymbol = config.symbol;
+            // Update validation for investment amount based on country
+            this.updateInvestmentAmountValidation(config);
+          }
         }
-      }
-    });
+      });
   }
 
-  private updateInvestmentAmountValidation(country: Country): void {
-    const investmentAmountControl = this.assessmentForm.get('investmentAmount');
-    if (investmentAmountControl) {
-      let minAmount = 100;
-      
-      switch (country) {
-        case 'USA':
-        case 'Canada':
-          minAmount = 100;
-          break;
-        case 'EU':
-          minAmount = 100;
-          break;
-        case 'India':
-          minAmount = 5000;
-          break;
+  // Custom validator for whole numbers (no decimals)
+  private wholeNumberValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (control.value === null || control.value === "") {
+        return null; // Let required validator handle empty values
       }
-      
+      const value = Number(control.value);
+      if (!Number.isInteger(value)) {
+        return { notWholeNumber: true };
+      }
+      return null;
+    };
+  }
+
+  // Custom validator for multiples of 100
+  private multipleOfHundredValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (control.value === null || control.value === "") {
+        return null; // Let required validator handle empty values
+      }
+      const value = Number(control.value);
+      if (value % 100 !== 0) {
+        return { notMultipleOfHundred: true };
+      }
+      return null;
+    };
+  }
+
+  // Custom validator for max investment amount
+  private maxInvestmentValidator(max: number): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (control.value === null || control.value === "") {
+        return null;
+      }
+      const value = Number(control.value);
+      if (value > max) {
+        return { maxInvestment: { max: max } };
+      }
+      return null;
+    };
+  }
+
+  private loadExistingAssessment(): void {
+    const stored = sessionStorage.getItem("riskAssessment");
+    if (stored) {
+      const assessment: RiskAssessment = JSON.parse(stored);
+
+      // Find the country config to set currency info
+      const config = this.countryConfigs.find(
+        (c) => c.country === assessment.country
+      );
+      if (config) {
+        this.currentCountryConfig = config;
+        this.selectedCurrency = config.currency;
+        this.selectedCurrencySymbol = config.symbol;
+      }
+
+      // Populate the form with existing values
+      this.assessmentForm.patchValue({
+        riskTolerance: assessment.riskTolerance,
+        investmentHorizonYears: assessment.investmentHorizonYears,
+        country: assessment.country,
+        investmentAmount: assessment.investmentAmount,
+      });
+
+      // Update validation after setting country
+      if (config) {
+        this.updateInvestmentAmountValidation(config);
+      }
+    }
+  }
+
+  private updateInvestmentAmountValidation(config: CountryConfig): void {
+    const investmentAmountControl = this.assessmentForm.get("investmentAmount");
+    if (investmentAmountControl) {
       investmentAmountControl.setValidators([
         Validators.required,
-        Validators.min(minAmount)
+        Validators.min(config.minInvestmentAmount),
+        this.maxInvestmentValidator(config.maxInvestmentAmount),
+        this.multipleOfHundredValidator(),
       ]);
       investmentAmountControl.updateValueAndValidity();
     }
   }
 
+  acknowledgeDisclaimer(): void {
+    sessionStorage.setItem("disclaimerAcknowledged", "true");
+    this.showDisclaimerModal = false;
+  }
+
   getMinInvestmentAmount(): number {
-    const country = this.assessmentForm.get('country')?.value;
-    switch (country) {
-      case 'USA':
-      case 'Canada':
-      case 'EU':
-        return 100;
-      case 'India':
-        return 5000;
-      default:
-        return 100;
-    }
+    return this.currentCountryConfig?.minInvestmentAmount || 5000;
+  }
+
+  getMaxInvestmentAmount(): number {
+    return this.currentCountryConfig?.maxInvestmentAmount || 1000000;
   }
 
   onSubmit(): void {
     if (this.assessmentForm.valid) {
       this.isSubmitting = true;
-      
+
       // Increment rate limit attempt
       this.rateLimitService.incrementAttempt().subscribe({
         next: () => {
@@ -102,40 +211,47 @@ export class RiskAssessmentComponent implements OnInit {
             investmentHorizonYears: Number(formValue.investmentHorizonYears),
             country: formValue.country,
             investmentAmount: Number(formValue.investmentAmount),
-            currency: this.selectedCurrency
+            currency: this.selectedCurrency,
           };
 
           // Store assessment data for next component
-          sessionStorage.setItem('riskAssessment', JSON.stringify(riskAssessment));
-          
+          sessionStorage.setItem(
+            "riskAssessment",
+            JSON.stringify(riskAssessment)
+          );
+
           // Navigate to portfolio results
-          this.router.navigate(['/portfolio-results']);
+          this.router.navigate(["/portfolio-results"]);
         },
         error: (error) => {
-          console.error('Error incrementing rate limit:', error);
+          console.error("Error incrementing rate limit:", error);
           this.isSubmitting = false;
-          this.snackBar.open('An error occurred. Please try again.', 'Close', {
-            duration: 5000
+          this.snackBar.open("An error occurred. Please try again.", "Close", {
+            duration: 5000,
           });
-        }
+        },
       });
     } else {
       this.markFormGroupTouched();
-      this.snackBar.open('Please fill in all required fields correctly.', 'Close', {
-        duration: 5000
-      });
+      this.snackBar.open(
+        "Please fill in all required fields correctly.",
+        "Close",
+        {
+          duration: 5000,
+        }
+      );
     }
   }
 
   private markFormGroupTouched(): void {
-    Object.keys(this.assessmentForm.controls).forEach(key => {
+    Object.keys(this.assessmentForm.controls).forEach((key) => {
       const control = this.assessmentForm.get(key);
       control?.markAsTouched();
     });
   }
 
   goBack(): void {
-    this.router.navigate(['/']);
+    this.router.navigate(["/"]);
   }
 
   // Helper methods for template
@@ -147,29 +263,91 @@ export class RiskAssessmentComponent implements OnInit {
   getErrorMessage(controlName: string): string {
     const control = this.assessmentForm.get(controlName);
     if (control && control.errors && control.touched) {
-      if (control.errors['required']) {
+      if (control.errors["required"]) {
         return `${this.getFieldLabel(controlName)} is required`;
       }
-      if (control.errors['min']) {
-        if (controlName === 'investmentAmount') {
-          return `Minimum investment amount is ${this.selectedCurrencySymbol}${this.getMinInvestmentAmount()}`;
+      if (control.errors["min"]) {
+        if (controlName === "investmentAmount") {
+          return `Minimum investment amount is ${this.selectedCurrencySymbol}${this.getMinInvestmentAmount().toLocaleString()}`;
         }
-        return `Minimum value is ${control.errors['min'].min}`;
+        return `${this.getFieldLabel(controlName)} must be at least ${control.errors["min"].min}`;
       }
-      if (control.errors['max']) {
-        return `Maximum value is ${control.errors['max'].max}`;
+      if (control.errors["max"]) {
+        if (controlName === "investmentHorizonYears") {
+          return "Too long a target! Let us plan for something within 30 years.";
+        }
+        return `Maximum value is ${control.errors["max"].max}`;
+      }
+      if (control.errors["maxInvestment"]) {
+        return `Currently, the app does not support investments above ${this.selectedCurrencySymbol}${control.errors["maxInvestment"].max.toLocaleString()}`;
+      }
+      if (control.errors["notWholeNumber"]) {
+        return "Investment horizon must be a whole number of years";
+      }
+      if (control.errors["notMultipleOfHundred"]) {
+        return "Investment amount must be in multiples of 100";
       }
     }
-    return '';
+    return "";
+  }
+
+  // Get all error messages for a control (for displaying multiple errors)
+  getAllErrorMessages(controlName: string): string[] {
+    const control = this.assessmentForm.get(controlName);
+    const messages: string[] = [];
+
+    if (control && control.errors && control.touched) {
+      if (control.errors["required"]) {
+        messages.push(`${this.getFieldLabel(controlName)} is required`);
+      }
+      if (control.errors["min"]) {
+        if (controlName === "investmentAmount") {
+          messages.push(
+            `Minimum investment amount is ${this.selectedCurrencySymbol}${this.getMinInvestmentAmount().toLocaleString()}`
+          );
+        } else if (controlName === "investmentHorizonYears") {
+          messages.push("Investment horizon must be at least 1 year");
+        } else {
+          messages.push(`Minimum value is ${control.errors["min"].min}`);
+        }
+      }
+      if (control.errors["max"]) {
+        if (controlName === "investmentHorizonYears") {
+          messages.push(
+            "Too long a target! Let us plan for something within 30 years."
+          );
+        } else {
+          messages.push(`Maximum value is ${control.errors["max"].max}`);
+        }
+      }
+      if (control.errors["maxInvestment"]) {
+        messages.push(
+          `Currently, the app does not support investments above ${this.selectedCurrencySymbol}${control.errors["maxInvestment"].max.toLocaleString()}`
+        );
+      }
+      if (control.errors["notWholeNumber"]) {
+        messages.push("Investment horizon must be a whole number of years");
+      }
+      if (control.errors["notMultipleOfHundred"]) {
+        messages.push("Investment amount must be in multiples of 100");
+      }
+    }
+
+    return messages;
   }
 
   private getFieldLabel(controlName: string): string {
     switch (controlName) {
-      case 'riskTolerance': return 'Risk tolerance';
-      case 'investmentHorizonYears': return 'Investment horizon';
-      case 'country': return 'Investment country';
-      case 'investmentAmount': return 'Investment amount';
-      default: return controlName;
+      case "riskTolerance":
+        return "Risk tolerance";
+      case "investmentHorizonYears":
+        return "Investment horizon";
+      case "country":
+        return "Investment country";
+      case "investmentAmount":
+        return "Investment amount";
+      default:
+        return controlName;
     }
   }
 }
