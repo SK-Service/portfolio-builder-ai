@@ -1,0 +1,9 @@
+[project]
+name = "portfolio-builder-agent"
+version = "1.0.0"
+license = {text = "MIT"}
+authors = [
+    {name = "Sunil Singh", email = ""}
+]
+description = "AI-powered stock portfolio recommendation agent using Anthropic Claude"
+requires-python = ">=3.13"

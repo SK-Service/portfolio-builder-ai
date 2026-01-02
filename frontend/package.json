@@ -1,6 +1,8 @@
 {
   "name": "portfolio-builder-frontend",
   "version": "1.0.0",
+  "author": "Sunil Singh",
+  "license": "MIT",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

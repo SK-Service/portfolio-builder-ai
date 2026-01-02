@@ -1,122 +1,255 @@
 # Portfolio Builder AI
 
-An intelligent multi-agent system that creates personalized stock portfolios using collaborative AI agents.
+An intelligent stock portfolio recommendation system that uses AI to create personalized investment portfolios. Users answer questions about their investment preferences, and the system generates tailored portfolio recommendations using Claude as the reasoning engine.
 
 ## Architecture
 
-- **Frontend**: Angular 18+ with Material Design
-- **Backend**: Firebase Functions + Firestore
-- **AI Agents**: Multi-language (Python + Java) with LangChain orchestration
-- **APIs**: Alpha Vantage (market data), Claude API (LLM)
-- **Deployment**: Firebase Hosting (Free Tier)
+The application follows a three-tier architecture deployed on Google Cloud Platform:
 
-## Quick Start
+**Frontend** - Angular 18 single-page application served from Firebase Hosting
 
-### Prerequisites
+**BFF (Backend for Frontend)** - NestJS application running on Cloud Run via Firebase Functions. Handles security validation, rate limiting, and request routing.
 
-- Node.js 18+
-- Python 3.9+
-- Java 17+
-- Firebase CLI
-- Ollama (for local development)
+**Agent** - Python application running on Cloud Run via Firebase Functions. Integrates with Anthropic Claude API to generate portfolio recommendations using specialized data tools.
 
-### Installation
+### Data Flow
 
-```bash
-# Clone and setup
-git clone <your-repo>
-cd portfolio-builder-ai
+1. User interacts with the Angular SPA in their browser
+2. Requests pass through security validation (Firebase App Check with reCAPTCHA v3, application key)
+3. BFF validates the request and forwards to the Agent
+4. Agent uses Claude with tools to analyze user preferences, economic and market data
+5. Portfolio recommendations are returned to the user
 
-# Install all dependencies
-npm run install:all
+### Agent Tools
 
-# Start development servers
-npm run dev
+The AI agent has access to four specialized tools for gathering investment data:
+
+| Tool               | Description                                 |
+| ------------------ | ------------------------------------------- |
+| Macroeconomic Data | Economic indicators by region and country   |
+| Stock Universe     | Available stocks for portfolio construction |
+| Stock Fundamentals | Financial metrics and company data          |
+| Market Sentiments  | Market sentiment analysis                   |
+
+Data sources include many data sources like Alpha Vantage for market data and FRED for economic indicators.
+
+## Tech Stack
+
+| Layer    | Technology                                |
+| -------- | ----------------------------------------- |
+| Frontend | Angular 18, Angular Material              |
+| BFF      | NestJS, TypeScript, Firebase Functions v2 |
+| Agent    | Python 3.13, Anthropic Claude API         |
+| Database | Cloud Firestore                           |
+| Hosting  | Firebase Hosting                          |
+| Runtime  | Google Cloud Run (via Firebase Functions) |
+| Security | Firebase App Check, reCAPTCHA v3          |
+| CI/CD    | GitHub Actions                            |
+
+## Project Structure
+
+```
+portfolio-builder-ai/
+├── frontend/                # Angular 18 application
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── components/  # UI components
+│   │   │   ├── services/    # API and business logic services
+│   │   │   ├── guards/      # Route guards (rate limiting)
+│   │   │   ├── interceptors/# HTTP interceptors (auth, error handling)
+│   │   │   └── mocks/       # MSW mock handlers for development and initial testing
+│   │   └── environments/    # Environment configurations
+│   └── angular.json
+│
+├── functions/               # NestJS BFF
+│   ├── src/
+│   │   ├── modules/         # Feature modules (portfolio, rate-limit, config)
+│   │   ├── common/          # Shared DTOs, middleware, types
+│   │   ├── services/        # Agent service, Firestore service, mocks
+│   │   └── config/          # Environment and Firebase configuration
+│   └── package.json
+│
+├── agents/                  # Python Agent
+│   ├── src/
+│   │   ├── agent/           # Anthropic service, prompts, tools
+│   │   ├── models/          # Data transfer objects
+│   │   └── utils/           # Security utilities
+│   ├── batch_jobs/          # Data loading scripts
+│   ├── tests/               # Agent evaluations
+│   └── requirements.txt
+│
+├── .github/
+│   └── workflows/           # CI/CD pipelines
+│       ├── deploy-frontend.yml
+│       ├── deploy-bff.yml
+│       └── deploy-agent.yml
+│
+└── firebase.json            # Firebase configuration
 ```
 
-### Development URLs
+## Prerequisites
 
-- Frontend: http://localhost:4200
-- Python Agents: http://localhost:8001
-- Java Agent: http://localhost:8002
-- Firebase Functions: http://localhost:5001
+- Node.js 20+
+- Python 3.13+
+- Firebase CLI
+- Google Cloud account with Firebase project
 
-## Agents
+## Installation
 
-| Agent               | Language | Purpose                              |
-| ------------------- | -------- | ------------------------------------ |
-| Coordinator         | Python   | Orchestrates multi-agent workflows   |
-| Risk Assessment     | Python   | Analyzes user risk profile           |
-| Market Research     | Java     | Fetches and processes market data    |
-| News Analysis       | Python   | Sentiment analysis of financial news |
-| Portfolio Optimizer | Python   | Creates optimized asset allocation   |
+```bash
+# Clone the repository
+git clone https://github.com/your-username/portfolio-builder-ai.git
+cd portfolio-builder-ai
 
-## Features
+# Install frontend dependencies
+cd frontend
+npm install
 
-- **Freemium Model**: 2 free interactions per user
-- **Multi-Agent Collaboration**: Specialized agents for different tasks
-- **Real-time Data**: Alpha Vantage integration
-- **Personalized Risk Assessment**: Custom questionnaire
-- **Portfolio Optimization**: Modern portfolio theory algorithms
-- **Responsive UI**: Angular Material design
+# Install BFF dependencies
+cd ../functions
+npm install
+
+# Install agent dependencies
+cd ../agents
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Configuration
+
+### Environment Variables
+
+Create `.env` files in the respective directories based on the `.env.example` templates.
+
+**Frontend** (`frontend/src/environments/environment.ts`):
+
+- Firebase configuration
+- API endpoints
+- reCAPTCHA site key
+
+**BFF** (`functions/.env`):
+
+- Firebase service account
+- Agent URL
+- Application security key
+
+**Agent** (`agents/.env`):
+
+- Anthropic API key
+- Alpha Vantage API key
+- FRED API key
+- Agent authentication key
 
 ## Development
 
+### Running Locally
+
 ```bash
-# Individual component development
-npm run dev:frontend    # Angular dev server
-npm run dev:functions   # Firebase functions
-npm run dev:agents      # Python agents
+# Terminal 1: Frontend (http://localhost:4200)
+cd frontend
+npm start
 
-# Testing
-npm test               # Run all tests
-npm run test:frontend  # Angular tests
-npm run test:agents    # Python tests
+# Terminal 2: BFF with Firebase Emulators (http://localhost:5001)
+cd functions
+npm run start:dev
 
-# Building
-npm run build          # Build all components
-npm run deploy:staging # Deploy to staging
+# Terminal 3: Agent
+cd agents
+source venv/bin/activate
+python main.py
 ```
 
-## CI/CD Pipeline
+### Development Commands
 
-This project uses GitHub Actions for automated deployment to Firebase Hosting.
+**Frontend:**
 
-### Workflow Features
+```bash
+npm start          # Start development server
+npm run build      # Production build
+npm test           # Run unit tests
+npm run lint       # Lint code
+```
 
-- Automated builds on push to main branch
-- Pull request preview deployments
-- Environment variable injection via GitHub Secrets
-- Production build optimization
-- Firebase Hosting deployment with versioning
+**BFF:**
 
-### Workflow Configuration
+```bash
+npm run start:dev  # Start with hot reload
+npm run build      # Build for production
+npm test           # Run unit tests
+npm run lint       # Lint and fix code
+```
 
-The deployment pipeline (`.github/workflows/firebase-deploy.yml`) handles:
+**Agent:**
 
-1. Code checkout and Node.js setup
-2. Dependency installation with npm ci
-3. Dynamic environment file creation from secrets
-4. Production Angular build
-5. Firebase Hosting deployment
+```bash
+python main.py                    # Start agent server
+python -m pytest tests/           # Run evaluations
+```
 
-## Progress Tracking
+### Using Mocks
 
-- [x] Project structure and configuration
-- [ ] Coordinator agent (Python/LangChain)
-- [ ] Risk assessment agent (Python)
-- [ ] Market research agent (Java)
-- [ ] News analysis agent (Python)
-- [ ] Portfolio optimizer agent (Python)
-- [x] Angular frontend
-- [x] Firebase integration
-- [ ] Multi-agent orchestration
-- [ ] Testing and deployment
+The frontend includes MSW (Mock Service Worker) handlers for development without backend dependencies. Mock data is located in `frontend/src/app/mocks/`.
 
-## Contributing
+The BFF includes a mock agent service that can be enabled via environment configuration for testing without the Python agent.
 
-This explores multi-agent AI agent development. Feel free to explore the code and provide feedback!
+## Testing
+
+### Frontend
+
+Unit tests using Jest and Angular testing utilities.
+
+### BFF
+
+Unit and e2e tests using Jest and Supertest.
+
+### Agent
+
+Evaluation tests for validating agent behavior and tool usage:
+
+- `Test_Complete_Agent.py` - End-to-end agent evaluation
+- `Test_Firestore_Tools.py` - Tool integration tests
+- `test_macro_data_all_countries.py` - Macroeconomic data tool tests
+
+## Deployment
+
+The project uses GitHub Actions for continuous deployment. Three separate workflows handle deployment of each component:
+
+- **deploy-frontend.yml** - Deploys Angular app to Firebase Hosting
+- **deploy-bff.yml** - Deploys NestJS BFF to Firebase Functions
+- **deploy-agent.yml** - Deploys Python agent to Firebase Functions
+
+Deployments are triggered by:
+
+- Push to `main` branch (path-specific)
+- Manual workflow dispatch
+
+### Required GitHub Secrets
+
+| Secret                       | Description                            |
+| ---------------------------- | -------------------------------------- |
+| FIREBASE_API_KEY             | Firebase project API key               |
+| FIREBASE_AUTH_DOMAIN         | Firebase auth domain                   |
+| FIREBASE_PROJECT_ID          | Firebase project ID                    |
+| FIREBASE_STORAGE_BUCKET      | Firebase storage bucket                |
+| FIREBASE_MESSAGING_SENDER_ID | Firebase messaging sender ID           |
+| FIREBASE_APP_ID              | Firebase app ID                        |
+| FIREBASE_SERVICE_ACCOUNT     | Service account JSON for deployment    |
+| RECAPTCHA_SITE_KEY           | reCAPTCHA v3 site key                  |
+| FRONTEND_APP_KEY             | Application key for API authentication |
+| ANTHROPIC_API_KEY            | Anthropic API key for Claude           |
+| ALPHA_VANTAGE_API_KEY        | Alpha Vantage API key                  |
+| FRED_API_KEY                 | FRED API key                           |
+
+## Security
+
+The application implements multiple security layers:
+
+- **Firebase App Check** with reCAPTCHA v3 for bot protection
+- **Application Key** validation between frontend and BFF
+- **HTTPS** for all communications
+- **Firestore Security Rules** for database access control
 
 ## License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

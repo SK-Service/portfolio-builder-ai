@@ -3,9 +3,9 @@
   "version": "0.0.1",
   "main": "dist/main.js",
   "description": "",
-  "author": "",
+  "author": "Sunil Singh",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

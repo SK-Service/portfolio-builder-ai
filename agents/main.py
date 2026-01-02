@@ -1,6 +1,9 @@
 """
+Portfolio Builder Agent
+Copyright (c) 2025 Your Name
+Licensed under the MIT License. See LICENSE file in the project root.
 Firebase Cloud Function: Portfolio Generator
-Phase 3: AI-powered portfolio generation using Anthropic Claude API
+AI-powered portfolio generation using Anthropic Claude API
 """
 
 print("=" * 60)
