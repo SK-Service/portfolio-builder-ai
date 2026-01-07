@@ -172,7 +172,7 @@ export class RateLimitService {
     // Default fallback - save to localStorage
     const defaultInfo: RateLimitInfo = {
       attempts: 0,
-      maxAttempts: 200,
+      maxAttempts: 2,
       lastAttempt: new Date(),
       fingerprint,
     };
@@ -181,7 +181,7 @@ export class RateLimitService {
 
     return {
       allowed: true,
-      attemptsRemaining: 100,
+      attemptsRemaining: 2,
       rateLimitInfo: defaultInfo,
     };
   }
