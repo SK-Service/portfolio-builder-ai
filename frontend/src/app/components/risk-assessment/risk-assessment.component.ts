@@ -11,6 +11,7 @@ import {
 } from "@angular/forms";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { ActivatedRoute, Router } from "@angular/router";
+import { PortfolioCacheService } from "../../services/portfolio-cache.service";
 import { RateLimitService } from "../../services/rate-limit.service";
 import {
   Country,
@@ -49,7 +50,8 @@ export class RiskAssessmentComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private snackBar: MatSnackBar,
-    private rateLimitService: RateLimitService
+    private rateLimitService: RateLimitService,
+    private portfolioCacheService: PortfolioCacheService
   ) {
     this.assessmentForm = this.fb.group({
       riskTolerance: ["", Validators.required],
@@ -218,32 +220,53 @@ export class RiskAssessmentComponent implements OnInit {
     if (this.assessmentForm.valid) {
       this.isSubmitting = true;
 
-      // Increment rate limit attempt
-      this.rateLimitService.incrementAttempt().subscribe({
-        next: () => {
-          const formValue = this.assessmentForm.value;
-          const riskAssessment: RiskAssessment = {
-            riskTolerance: formValue.riskTolerance,
-            investmentHorizonYears: Number(formValue.investmentHorizonYears),
-            country: formValue.country,
-            investmentAmount: Number(formValue.investmentAmount),
-            currency: this.selectedCurrency,
-          };
+      const formValue = this.assessmentForm.value;
+      const riskAssessment: RiskAssessment = {
+        riskTolerance: formValue.riskTolerance,
+        investmentHorizonYears: Number(formValue.investmentHorizonYears),
+        country: formValue.country,
+        investmentAmount: Number(formValue.investmentAmount),
+        currency: this.selectedCurrency,
+      };
 
-          // Store assessment data for next component
-          sessionStorage.setItem(
-            "riskAssessment",
-            JSON.stringify(riskAssessment)
-          );
+      // Check if we have a cache hit (same inputs as before)
+      if (this.portfolioCacheService.hasCacheHit(riskAssessment)) {
+        // Cache hit - no need to check rate limit or call API
+        // Just navigate to results which will load from cache
+        this.navigateToResults(riskAssessment);
+        return;
+      }
 
-          // Set flow validation flag for portfolio-results guard
-          sessionStorage.setItem(this.FLOW_FLAG_KEY, "true");
+      // Cache miss - need to check rate limit before proceeding
+      this.rateLimitService.checkRateLimit().subscribe({
+        next: ({ allowed, attemptsRemaining }) => {
+          if (!allowed) {
+            // Rate limit exceeded
+            this.isSubmitting = false;
+            this.showRateLimitExceededMessage();
+            return;
+          }
 
-          // Navigate to portfolio results
-          this.router.navigate(["/portfolio-results"]);
+          // Allowed - increment rate limit and proceed
+          this.rateLimitService.incrementAttempt().subscribe({
+            next: () => {
+              this.navigateToResults(riskAssessment);
+            },
+            error: (error) => {
+              console.error("Error incrementing rate limit:", error);
+              this.isSubmitting = false;
+              this.snackBar.open(
+                "An error occurred. Please try again.",
+                "Close",
+                {
+                  duration: 5000,
+                }
+              );
+            },
+          });
         },
         error: (error) => {
-          console.error("Error incrementing rate limit:", error);
+          console.error("Error checking rate limit:", error);
           this.isSubmitting = false;
           this.snackBar.open("An error occurred. Please try again.", "Close", {
             duration: 5000,
@@ -260,6 +283,34 @@ export class RiskAssessmentComponent implements OnInit {
         }
       );
     }
+  }
+
+  /**
+   * Navigate to portfolio results after validation
+   */
+  private navigateToResults(riskAssessment: RiskAssessment): void {
+    // Store assessment data for next component
+    sessionStorage.setItem("riskAssessment", JSON.stringify(riskAssessment));
+
+    // Set flow validation flag for portfolio-results guard
+    sessionStorage.setItem(this.FLOW_FLAG_KEY, "true");
+
+    // Navigate to portfolio results
+    this.router.navigate(["/portfolio-results"]);
+  }
+
+  /**
+   * Show rate limit exceeded message
+   */
+  private showRateLimitExceededMessage(): void {
+    this.snackBar.open(
+      "You have reached your usage limit. Please try again after 48 hours.",
+      "OK",
+      {
+        duration: 0, // Stay until dismissed
+        panelClass: ["rate-limit-snackbar"],
+      }
+    );
   }
 
   private markFormGroupTouched(): void {

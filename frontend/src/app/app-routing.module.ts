@@ -6,14 +6,12 @@ import { HomeComponent } from "./components/home/home.component";
 import { PortfolioResultsComponent } from "./components/portfolio-results/portfolio-results.component";
 import { RiskAssessmentComponent } from "./components/risk-assessment/risk-assessment.component";
 import { PortfolioFlowGuard } from "./guards/portfolio-flow.guard";
-import { RateLimitGuard } from "./guards/rate-limit.guard";
 
 const routes: Routes = [
   { path: "", component: HomeComponent },
   {
     path: "risk-assessment",
     component: RiskAssessmentComponent,
-    canActivate: [RateLimitGuard],
   },
   {
     path: "portfolio-results",

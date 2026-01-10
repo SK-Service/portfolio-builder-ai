@@ -15,14 +15,9 @@ import {
   TooltipItem,
   registerables,
 } from "chart.js";
+import { PortfolioCacheService } from "../../services/portfolio-cache.service";
 import { PortfolioService } from "../../services/portfolio.service";
 import { PortfolioRecommendation, RiskAssessment } from "../../shared/models";
-
-interface CachedPortfolio {
-  cacheKey: string;
-  portfolio: PortfolioRecommendation;
-  cachedAt: string;
-}
 
 @Component({
   selector: "app-portfolio-results",
@@ -44,7 +39,6 @@ export class PortfolioResultsComponent
   private pieChart: Chart | null = null;
   private lineChart: Chart | null = null;
 
-  private readonly PORTFOLIO_CACHE_KEY = "portfolio_cache";
   private readonly FLOW_FLAG_KEY = "portfolioFlowValid";
 
   displayedColumns: string[] = [
@@ -57,7 +51,8 @@ export class PortfolioResultsComponent
 
   constructor(
     private router: Router,
-    private portfolioService: PortfolioService
+    private portfolioService: PortfolioService,
+    private portfolioCacheService: PortfolioCacheService
   ) {
     Chart.register(...registerables);
   }
@@ -93,26 +88,18 @@ export class PortfolioResultsComponent
   }
 
   /**
-   * Generate a cache key from risk assessment inputs
-   * This ensures cache is only used when inputs are identical
-   */
-  private generateCacheKey(assessment: RiskAssessment): string {
-    return `${assessment.riskTolerance}_${assessment.investmentHorizonYears}_${assessment.country}_${assessment.investmentAmount}_${assessment.currency}`;
-  }
-
-  /**
    * Try to load portfolio from cache, otherwise generate new one
    */
   private loadOrGeneratePortfolio(): void {
     if (!this.riskAssessment) return;
 
-    const currentCacheKey = this.generateCacheKey(this.riskAssessment);
-    const cachedData = this.getCachedPortfolio();
-
     // Check if we have a valid cached portfolio for the same inputs
-    if (cachedData && cachedData.cacheKey === currentCacheKey) {
+    const cachedPortfolio =
+      this.portfolioCacheService.getPortfolioForAssessment(this.riskAssessment);
+
+    if (cachedPortfolio) {
       console.log("Portfolio loaded from cache");
-      this.portfolioRecommendation = cachedData.portfolio;
+      this.portfolioRecommendation = cachedPortfolio;
       this.isLoading = false;
       // Clear flow flag since we've successfully loaded
       this.clearFlowFlag();
@@ -122,50 +109,6 @@ export class PortfolioResultsComponent
 
     // No valid cache, generate new portfolio
     this.generatePortfolioRecommendation();
-  }
-
-  /**
-   * Get cached portfolio from sessionStorage
-   */
-  private getCachedPortfolio(): CachedPortfolio | null {
-    try {
-      const stored = sessionStorage.getItem(this.PORTFOLIO_CACHE_KEY);
-      if (stored) {
-        return JSON.parse(stored) as CachedPortfolio;
-      }
-    } catch (error) {
-      console.warn("Error reading portfolio cache:", error);
-    }
-    return null;
-  }
-
-  /**
-   * Save portfolio to sessionStorage cache
-   */
-  private cachePortfolio(portfolio: PortfolioRecommendation): void {
-    if (!this.riskAssessment) return;
-
-    try {
-      const cacheData: CachedPortfolio = {
-        cacheKey: this.generateCacheKey(this.riskAssessment),
-        portfolio: portfolio,
-        cachedAt: new Date().toISOString(),
-      };
-      sessionStorage.setItem(
-        this.PORTFOLIO_CACHE_KEY,
-        JSON.stringify(cacheData)
-      );
-      console.log("Portfolio cached successfully");
-    } catch (error) {
-      console.warn("Error caching portfolio:", error);
-    }
-  }
-
-  /**
-   * Clear the portfolio cache
-   */
-  private clearPortfolioCache(): void {
-    sessionStorage.removeItem(this.PORTFOLIO_CACHE_KEY);
   }
 
   /**
@@ -187,7 +130,12 @@ export class PortfolioResultsComponent
         next: (recommendation) => {
           this.portfolioRecommendation = recommendation;
           // Cache the successful result
-          this.cachePortfolio(recommendation);
+          if (this.riskAssessment) {
+            this.portfolioCacheService.cachePortfolio(
+              recommendation,
+              this.riskAssessment
+            );
+          }
           // Clear flow flag after successful generation
           this.clearFlowFlag();
           setTimeout(() => this.setupCharts(), 100);
@@ -336,15 +284,17 @@ export class PortfolioResultsComponent
   }
 
   startNewAssessment(): void {
-    // Clear both risk assessment and portfolio cache
+    // Clear risk assessment data
     sessionStorage.removeItem("riskAssessment");
-    this.clearPortfolioCache();
-    this.router.navigate(["/"]);
+    // Clear portfolio cache
+    this.portfolioCacheService.clearCache();
+    // Navigate to risk assessment page with empty form
+    this.router.navigate(["/risk-assessment"]);
   }
 
   modifyAssessment(): void {
-    // Clear portfolio cache so new inputs will generate fresh portfolio
-    this.clearPortfolioCache();
+    // Clear portfolio cache so modified inputs can be checked properly
+    this.portfolioCacheService.clearCache();
     // Navigate to risk assessment with modify mode query parameter
     // This preserves the existing assessment data and pre-populates the form
     this.router.navigate(["/risk-assessment"], {
