@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { AppConfigDto } from '../common/dto/config.dto';
 import { RateLimitResponseDto } from '../common/dto/rate-limit.dto';
+import { environment } from '../config/environment';
 import { getFirestore } from '../config/firebase.config';
 
 interface RateLimitData {
@@ -56,9 +57,28 @@ export class FirestoreService implements OnModuleInit {
         return null;
       }
 
+      // Check if reset time has passed
+      const now = new Date();
+      const resetAt = new Date(data.resetAt);
+
+      if (now > resetAt) {
+        // Reset period has passed - reset the attempts
+        console.log(
+          `Rate limit reset for fingerprint: ${fingerprint.substring(0, 10)}...`,
+        );
+        await this.resetRateLimitAttempts(docRef, data.maxAttempts);
+
+        return {
+          allowed: true,
+          attemptsRemaining: data.maxAttempts,
+          attemptsUsed: 0,
+          resetAt: data.resetAt, // Will be updated on next increment
+        };
+      }
+
       return {
         allowed: data.attempts < data.maxAttempts,
-        attemptsRemaining: data.maxAttempts - data.attempts,
+        attemptsRemaining: Math.max(0, data.maxAttempts - data.attempts),
         attemptsUsed: data.attempts,
         resetAt: data.resetAt,
       };
@@ -66,6 +86,22 @@ export class FirestoreService implements OnModuleInit {
       console.error('Error fetching rate limit from Firestore:', error);
       throw error;
     }
+  }
+
+  /**
+   * Reset rate limit attempts when reset period has passed
+   */
+  private async resetRateLimitAttempts(
+    docRef: FirebaseFirestore.DocumentReference,
+    maxAttempts: number,
+  ): Promise<void> {
+    const now = new Date();
+
+    await docRef.update({
+      attempts: 0,
+      maxAttempts,
+      updatedAt: now.toISOString(),
+    });
   }
 
   async incrementRateLimit(
@@ -77,9 +113,11 @@ export class FirestoreService implements OnModuleInit {
       const doc = await docRef.get();
 
       const now = new Date();
-      const resetAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const windowHours = environment.rateLimit.windowHours;
+      const resetAt = new Date(now.getTime() + windowHours * 60 * 60 * 1000);
 
       if (!doc.exists) {
+        // New fingerprint - create new record
         const newData: RateLimitData = {
           fingerprint,
           attempts: 1,
@@ -106,11 +144,38 @@ export class FirestoreService implements OnModuleInit {
         throw new Error('Rate limit data is undefined');
       }
 
+      // Check if reset time has passed
+      const existingResetAt = new Date(data.resetAt);
+
+      if (now > existingResetAt) {
+        // Reset period has passed - reset attempts and set new window
+        console.log(
+          `Rate limit reset on increment for fingerprint: ${fingerprint.substring(0, 10)}...`,
+        );
+
+        await docRef.update({
+          attempts: 1,
+          maxAttempts,
+          lastAttempt: now.toISOString(),
+          resetAt: resetAt.toISOString(),
+          updatedAt: now.toISOString(),
+        });
+
+        return {
+          allowed: true,
+          attemptsRemaining: maxAttempts - 1,
+          attemptsUsed: 1,
+          resetAt: resetAt.toISOString(),
+        };
+      }
+
+      // Within current window - increment attempts and update resetAt (rolling window)
       const newAttempts = data.attempts + 1;
 
       await docRef.update({
         attempts: newAttempts,
         lastAttempt: now.toISOString(),
+        resetAt: resetAt.toISOString(), // Rolling window: reset from last attempt
         updatedAt: now.toISOString(),
       });
 
@@ -118,7 +183,7 @@ export class FirestoreService implements OnModuleInit {
         allowed: newAttempts < maxAttempts,
         attemptsRemaining: Math.max(0, maxAttempts - newAttempts),
         attemptsUsed: newAttempts,
-        resetAt: data.resetAt,
+        resetAt: resetAt.toISOString(),
       };
     } catch (error) {
       console.error('Error incrementing rate limit in Firestore:', error);

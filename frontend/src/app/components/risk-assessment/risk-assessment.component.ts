@@ -41,6 +41,9 @@ export class RiskAssessmentComponent implements OnInit {
   // Current country config for validation messages
   currentCountryConfig: CountryConfig | null = null;
 
+  // Flow validation flag key
+  private readonly FLOW_FLAG_KEY = "portfolioFlowValid";
+
   constructor(
     private fb: FormBuilder,
     private router: Router,
@@ -232,6 +235,9 @@ export class RiskAssessmentComponent implements OnInit {
             "riskAssessment",
             JSON.stringify(riskAssessment)
           );
+
+          // Set flow validation flag for portfolio-results guard
+          sessionStorage.setItem(this.FLOW_FLAG_KEY, "true");
 
           // Navigate to portfolio results
           this.router.navigate(["/portfolio-results"]);

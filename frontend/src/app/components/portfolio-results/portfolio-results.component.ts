@@ -45,6 +45,7 @@ export class PortfolioResultsComponent
   private lineChart: Chart | null = null;
 
   private readonly PORTFOLIO_CACHE_KEY = "portfolio_cache";
+  private readonly FLOW_FLAG_KEY = "portfolioFlowValid";
 
   displayedColumns: string[] = [
     "symbol",
@@ -113,6 +114,8 @@ export class PortfolioResultsComponent
       console.log("Portfolio loaded from cache");
       this.portfolioRecommendation = cachedData.portfolio;
       this.isLoading = false;
+      // Clear flow flag since we've successfully loaded
+      this.clearFlowFlag();
       setTimeout(() => this.setupCharts(), 100);
       return;
     }
@@ -165,6 +168,14 @@ export class PortfolioResultsComponent
     sessionStorage.removeItem(this.PORTFOLIO_CACHE_KEY);
   }
 
+  /**
+   * Clear the flow validation flag
+   * This prevents direct access via bookmark after initial load
+   */
+  private clearFlowFlag(): void {
+    sessionStorage.removeItem(this.FLOW_FLAG_KEY);
+  }
+
   private generatePortfolioRecommendation(): void {
     if (!this.riskAssessment) return;
 
@@ -177,12 +188,16 @@ export class PortfolioResultsComponent
           this.portfolioRecommendation = recommendation;
           // Cache the successful result
           this.cachePortfolio(recommendation);
+          // Clear flow flag after successful generation
+          this.clearFlowFlag();
           setTimeout(() => this.setupCharts(), 100);
           this.isLoading = false;
         },
         error: (error) => {
           console.error("Error generating portfolio:", error);
           this.isLoading = false;
+          // Clear flow flag even on error to prevent retry via refresh
+          this.clearFlowFlag();
         },
       });
   }
