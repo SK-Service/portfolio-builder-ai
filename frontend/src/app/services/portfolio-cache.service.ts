@@ -15,6 +15,7 @@ interface CachedPortfolio {
 })
 export class PortfolioCacheService {
   private readonly PORTFOLIO_CACHE_KEY = "portfolio_cache";
+  private readonly CACHE_TTL_HOURS = 24;
 
   constructor(private logger: LoggerService) {}
 
@@ -27,6 +28,17 @@ export class PortfolioCacheService {
   }
 
   /**
+   * Check if cache has expired based on TTL
+   */
+  private isCacheExpired(cachedAt: string): boolean {
+    const cachedTime = new Date(cachedAt).getTime();
+    const now = Date.now();
+    const ttlMs = this.CACHE_TTL_HOURS * 60 * 60 * 1000;
+
+    return now - cachedTime > ttlMs;
+  }
+
+  /**
    * Check if there's a cache hit for the given assessment
    */
   hasCacheHit(assessment: RiskAssessment): boolean {
@@ -34,6 +46,11 @@ export class PortfolioCacheService {
     const cachedData = this.getCachedPortfolio();
 
     if (cachedData && cachedData.cacheKey === currentCacheKey) {
+      // Check TTL
+      if (this.isCacheExpired(cachedData.cachedAt)) {
+        this.logger.debug("PortfolioCacheService: Cache expired");
+        return false;
+      }
       this.logger.debug("PortfolioCacheService: Cache hit for assessment");
       return true;
     }
@@ -58,7 +75,7 @@ export class PortfolioCacheService {
   }
 
   /**
-   * Get cached portfolio if it matches the given assessment
+   * Get cached portfolio if it matches the given assessment and is not expired
    */
   getPortfolioForAssessment(
     assessment: RiskAssessment
@@ -67,6 +84,13 @@ export class PortfolioCacheService {
     const cachedData = this.getCachedPortfolio();
 
     if (cachedData && cachedData.cacheKey === currentCacheKey) {
+      // Check TTL
+      if (this.isCacheExpired(cachedData.cachedAt)) {
+        this.logger.info(
+          "PortfolioCacheService: Cache expired, returning null"
+        );
+        return null;
+      }
       this.logger.info("PortfolioCacheService: Returning cached portfolio");
       return cachedData.portfolio;
     }

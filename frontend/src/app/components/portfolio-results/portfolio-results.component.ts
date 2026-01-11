@@ -284,17 +284,17 @@ export class PortfolioResultsComponent
   }
 
   startNewAssessment(): void {
-    // Clear risk assessment data
+    // Clear risk assessment data so form is empty
     sessionStorage.removeItem("riskAssessment");
-    // Clear portfolio cache
-    this.portfolioCacheService.clearCache();
+    // Do NOT clear portfolio cache - TTL handles expiry
+    // If user enters same inputs, cache hit saves API call
     // Navigate to risk assessment page with empty form
     this.router.navigate(["/risk-assessment"]);
   }
 
   modifyAssessment(): void {
-    // Clear portfolio cache so modified inputs can be checked properly
-    this.portfolioCacheService.clearCache();
+    // Do NOT clear cache - if user submits with same inputs, it will be a cache hit
+    // Cache is only cleared when user clicks "Start New Analysis"
     // Navigate to risk assessment with modify mode query parameter
     // This preserves the existing assessment data and pre-populates the form
     this.router.navigate(["/risk-assessment"], {
